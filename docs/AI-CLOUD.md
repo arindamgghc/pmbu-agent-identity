@@ -4,13 +4,25 @@ Deployed and verified on October 6, 2026. The central services run in `/home/tra
 
 | Component | Published interface | Verification |
 |---|---|---|
-| Identity registry, Duo simulator and RAR issuer | `127.0.0.1:4191` on AI Cloud | HTTP health and foundation demo passed |
+| Identity registry, Duo simulator and RAR issuer | `10.8.102.52:4191` on the lab interface; also `127.0.0.1:4191` | HTTP health and foundation demo passed |
 | SPIRE Server | `10.8.102.52:8081` | SPIRE healthcheck passed |
 | SPIRE data initializer | No port; exits after setting volume ownership | Exited successfully |
 
 The foundation and SPIRE Server have `restart: unless-stopped` and dedicated named volumes. The SPIRE Agent and workload client are not deployed on AI Cloud. Real Duo and ISE integration are out of scope. Lattice Agent attestation and live PCF treatment remain separate work.
 
-## Access the foundation from your Mac
+## Direct access from Lattice
+
+The foundation API is now published on AI Cloud's private lab address. From Lattice:
+
+```sh
+curl --max-time 5 http://10.8.102.52:4191/health
+curl http://10.8.102.52:4191/.well-known/oauth-authorization-server
+curl http://10.8.102.52:4191/.well-known/jwks.json
+```
+
+Use `http://10.8.102.52:4191` as the base URL for identity, Duo simulator, token issuance and introspection calls. This is plain HTTP for the lab; credentials and tokens are unencrypted on this path. The service is not bound to all interfaces or published through the public jumphost address. SPIRE port 8081 continues to use TLS/gRPC.
+
+## Access the foundation from your Mac through SSH
 
 The current session has opened an SSH tunnel at `http://127.0.0.1:14191`. This points to AI Cloud, while your original laptop prototype stays on port 4191. Health, metadata and JWKS are accessible without credentials:
 
@@ -30,9 +42,9 @@ ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
    -N -L 127.0.0.1:24191:127.0.0.1:4191 train3@10.8.102.52'
 ```
 
-The two forwards use the jumphost's existing SSH access to AI Cloud. The application HTTP traffic travels inside SSH; port 4191 is not published on AI Cloud's lab interface. Port 24191 is loopback-only on the jumphost.
+The two forwards use the jumphost's existing SSH access to AI Cloud. This optional path carries HTTP traffic inside SSH. Port 24191 is loopback-only on the jumphost.
 
-The configured OAuth issuer is `http://127.0.0.1:14191`, matching this forwarded endpoint. Clients should configure this issuer and the `pmbu-pcf-adapter` audience explicitly. On AI Cloud itself, HTTP requests can use `http://127.0.0.1:4191`, while issued tokens retain the configured issuer. A different shared endpoint requires updating `PMBU_ISSUER` and the clients' issuer configuration together.
+The configured OAuth issuer is now `http://10.8.102.52:4191`, matching the shared lab endpoint. Clients should configure this issuer and the `pmbu-pcf-adapter` audience explicitly. Requests made through the SSH tunnel or AI Cloud loopback still receive tokens carrying this lab issuer. RAR tokens issued under the former `http://127.0.0.1:14191` issuer fail current introspection; request new entitlements. Registry state, identity sessions, credentials and signing keys are preserved.
 
 ## Inspect and manage the central services
 
@@ -99,6 +111,6 @@ The next setup needs:
 2. AI Cloud's public X.509 trust bundle from `deploy/spire/runtime/bundle.pem` transferred to Lattice through the trusted SSH connection.
 3. A short-lived single-use join token generated on AI Cloud and supplied securely to the Lattice Agent.
 4. Separate workload registrations/selectors for AI agent-1 and AI agent-2, followed by registry-to-SPIFFE mappings in the foundation.
-5. Protected foundation access from Lattice or a trusted helper, and an agreed RAR-to-flow handoff to Abdullah's adapter.
+5. Configure the foundation base URL and issuer as `http://10.8.102.52:4191` for direct lab access, and agree the RAR-to-flow handoff with Abdullah's adapter. Use SSH tunneling or add TLS when encrypted access is required.
 
 Public bundles are exported at `deploy/spire/runtime/bundle.pem` and `bundle.json`; the foundation reads the JSON bundle. Refresh them when SPIRE's signing keys rotate. Cloud private keys and credentials stay in Docker volume state. Token-free foundation validation evidence is stored in `artifacts/aicloud-results.json` in the source workspace and `/app/state/aicloud-results.json` in the cloud foundation container.

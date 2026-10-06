@@ -3,12 +3,12 @@ services:
   identity-foundation:
     build: .
     restart: unless-stopped
-    ports: ["127.0.0.1:4191:4191"]
+    ports: ["10.8.102.52:4191:4191", "127.0.0.1:4191:4191"]
     environment:
       PMBU_HOST: 0.0.0.0
       PORT: "4191"
       PMBU_DATA_DIR: /app/state
-      PMBU_ISSUER: ${PMBU_ISSUER:-http://127.0.0.1:14191}
+      PMBU_ISSUER: ${PMBU_ISSUER:-http://10.8.102.52:4191}
       SPIRE_BUNDLE_PATH: /app/spire-runtime/bundle.json
     volumes:
       - foundation-state:/app/state
