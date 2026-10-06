@@ -1,0 +1,17 @@
+{
+  "name": "pmbu-agent-identity",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "demo": "node demo-client.js",
+    "start:foundation": "node foundation-server.js",
+    "demo:foundation": "node examples/foundation-demo.js",
+    "demo:spire": "node examples/spire-demo.js"
+  }
+}

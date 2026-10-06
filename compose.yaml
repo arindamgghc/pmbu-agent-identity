@@ -1,0 +1,60 @@
+services:
+  identity-foundation:
+    build: .
+    ports: ["127.0.0.1:4191:4191"]
+    environment:
+      PMBU_HOST: 0.0.0.0
+      PORT: "4191"
+      PMBU_DATA_DIR: /app/state
+      PMBU_ISSUER: http://127.0.0.1:4191
+      SPIRE_BUNDLE_PATH: /app/spire-runtime/bundle.json
+    volumes:
+      - foundation-state:/app/state
+      - ./deploy/spire/runtime:/app/spire-runtime:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4191/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+  spire-data-init:
+    build: .
+    profiles: [spire]
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c", "chown 1000:1000 /state/server /state/agent"]
+    volumes:
+      - spire-server-data:/state/server
+      - spire-agent-data:/state/agent
+  spire-server:
+    image: ghcr.io/spiffe/spire-server:1.15.3
+    profiles: [spire]
+    depends_on:
+      spire-data-init:
+        condition: service_completed_successfully
+    command: ["-config", "/opt/spire/conf/server.conf"]
+    volumes:
+      - ./deploy/spire/server.conf:/opt/spire/conf/server.conf:ro
+      - spire-server-data:/opt/spire/data
+  spire-agent:
+    image: ghcr.io/spiffe/spire-agent:1.15.3
+    profiles: [spire]
+    pid: "service:spire-client"
+    depends_on: [spire-server, spire-client]
+    command: ["-config", "/opt/spire/conf/agent.conf", "-joinToken", "${SPIRE_JOIN_TOKEN:-not-bootstrapped}"]
+    volumes:
+      - ./deploy/spire/agent.conf:/opt/spire/conf/agent.conf:ro
+      - ./deploy/spire/runtime:/opt/spire/bootstrap:ro
+      - spire-agent-data:/opt/spire/data
+      - spire-sockets:/tmp/spire-agent/public
+  spire-client:
+    build:
+      context: .
+      dockerfile: deploy/spire/Dockerfile.client
+    profiles: [spire]
+    entrypoint: ["/bin/sh", "-c", "sleep infinity"]
+    user: "10001:10001"
+    volumes: ["spire-sockets:/tmp/spire-agent/public"]
+volumes:
+  foundation-state:
+  spire-server-data:
+  spire-agent-data:
+  spire-sockets:

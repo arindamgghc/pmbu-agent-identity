@@ -1,0 +1,5 @@
+FROM ghcr.io/spiffe/spire-agent:1.15.3 AS spire
+FROM node:22-alpine
+COPY --from=spire /opt/spire/bin/spire-agent /opt/spire/bin/spire-agent
+USER 10001:10001
+CMD ["sleep", "infinity"]

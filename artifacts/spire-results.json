@@ -1,0 +1,37 @@
+{
+  "recordedAt": "2026-10-06T08:57:19.204Z",
+  "identityMode": "live-spire-jwt-svid",
+  "spiffeId": "spiffe://pmbu.demo/workloads/security",
+  "checks": {
+    "workloadSvidVerified": true,
+    "wrongAudienceRejected": true,
+    "pendingApprovalBlocked": true,
+    "rarSignatureVerified": true,
+    "spiffeSubjectRetained": true,
+    "introspectionActive": true,
+    "identityTerminationInvalidated": true
+  },
+  "grantedDetails": [
+    {
+      "type": "urn:pmbu:authorization:network-qos",
+      "operation": "security_alert",
+      "network_context": "access",
+      "flow_id": "spire-alert-01",
+      "flow": {
+        "src_ip": "192.0.2.10",
+        "dst_ip": "192.0.2.20",
+        "src_port": 45000,
+        "dst_port": 443,
+        "protocol": "tcp"
+      },
+      "subscriber_id": "DEMO-SUBSCRIBER",
+      "pdu_session_id": "demo-session-1",
+      "qos_tier": "critical",
+      "5qi": 7,
+      "dscp": 46,
+      "qos_mapping_status": "demo_only",
+      "flow_binding_verified": false
+    }
+  ],
+  "enforcement": "dry_run_only"
+}

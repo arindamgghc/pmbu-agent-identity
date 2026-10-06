@@ -1,0 +1,6 @@
+data
+foundation-data
+.git
+artifacts
+deploy/spire/runtime
+node_modules

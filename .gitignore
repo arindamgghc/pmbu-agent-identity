@@ -1,0 +1,13 @@
+data/
+node_modules/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+*.key
+*.pem
+foundation-data/
+deploy/spire/runtime/
+artifacts/*.zip
+artifacts/*.png

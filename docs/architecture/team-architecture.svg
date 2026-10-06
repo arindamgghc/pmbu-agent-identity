@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1290" viewBox="0 0 2000 1290">
+<defs>
+<marker id="a7759ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7759ac"/></marker>
+<marker id="a27866d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#27866d"/></marker>
+</defs>
+<rect width="100%" height="100%" fill="#f7f9fc"/>
+<rect x="60" y="190" width="500" height="670" rx="20" fill="#ffffff" stroke="#cbd7e2" stroke-width="2"/>
+<text x="84" y="228" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="84" dy="0">LOCAL AGENTS</tspan></text>
+<text x="84" y="256" font-family="Arial, sans-serif" font-size="17" fill="#60778b" font-weight="400"><tspan x="84" dy="0">Owner: local-agent teammate</tspan></text>
+<rect x="650" y="190" width="590" height="670" rx="20" fill="#ffffff" stroke="#cbd7e2" stroke-width="2"/>
+<text x="674" y="228" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="674" dy="0">IDENTITY + ENTERPRISE POLICY</tspan></text>
+<text x="674" y="256" font-family="Arial, sans-serif" font-size="17" fill="#60778b" font-weight="400"><tspan x="674" dy="0">Owner: Arindam | local service :4180</tspan></text>
+<rect x="1330" y="190" width="610" height="670" rx="20" fill="#ffffff" stroke="#cbd7e2" stroke-width="2"/>
+<text x="1354" y="228" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="1354" dy="0">HOSTED CONNECTIVITY BOUNDARY</tspan></text>
+<text x="1354" y="256" font-family="Arial, sans-serif" font-size="17" fill="#60778b" font-weight="400"><tspan x="1354" dy="0">Owner: connectivity / network teammate</tspan></text>
+<polyline points="530,385 605,385 605,562 680,562" fill="none" stroke="#7759ac" stroke-width="3" marker-end="url(#a7759ac)" stroke-linejoin="round"/>
+<polyline points="530,615 580,615 580,748 680,748" fill="none" stroke="#7759ac" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#a7759ac)" stroke-linejoin="round"/>
+<polyline points="1210,748 1280,748 1280,375 1360,375" fill="none" stroke="#7759ac" stroke-width="3" marker-end="url(#a7759ac)" stroke-linejoin="round"/>
+<polyline points="310,450 310,540" fill="none" stroke="#7759ac" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#a7759ac)" stroke-linejoin="round"/>
+<polyline points="1635,470 1635,570" fill="none" stroke="#7759ac" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#a7759ac)" stroke-linejoin="round"/>
+<polyline points="1580,820 1580,900 945,900 945,820" fill="none" stroke="#27866d" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#a27866d)" stroke-linejoin="round"/>
+<rect x="90" y="285" width="440" height="165" rx="14" fill="#e2f5ef" stroke="#238571" stroke-width="2"/>
+<text x="110" y="319" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="110" dy="0">Activity changes importance</tspan></text>
+<text x="110" y="350" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="110" dy="0">Health: model update → background</tspan><tspan x="110" dy="25.2">Health: synthetic alert → critical</tspan><tspan x="110" dy="25.2">Travel: booking → interactive</tspan><tspan x="110" dy="25.2">Recipe: recipe fetch → background</tspan></text>
+<rect x="90" y="540" width="440" height="145" rx="14" fill="#fff4df" stroke="#b78228" stroke-width="2"/>
+<text x="110" y="574" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="110" dy="0">Trusted flow binding</tspan></text>
+<text x="110" y="605" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="110" dy="0">Proxy / sidecar or OS flow association</tspan><tspan x="110" dy="25.2">Bind agent identity to observed traffic</tspan><tspan x="110" dy="25.2">Planned; flowId is a logical label today</tspan></text>
+<rect x="90" y="725" width="440" height="95" rx="14" fill="#fff4df" stroke="#b78228" stroke-width="2"/>
+<text x="110" y="759" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="110" dy="0">Device targets</tspan></text>
+<text x="110" y="790" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="110" dy="0">Phone · Raspberry Pi · laptop · Mac mini</tspan></text>
+<rect x="680" y="285" width="530" height="160" rx="14" fill="#e2f5ef" stroke="#238571" stroke-width="2"/>
+<text x="700" y="319" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="700" dy="0">Agent registry and accountable owner</tspan></text>
+<text x="700" y="350" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="700" dy="0">Administrator assigns profile and device</tspan><tspan x="700" dy="25.2">Single-use bootstrap: ≤ 5 minutes</tspan><tspan x="700" dy="25.2">Duo / enterprise approval: future adapter</tspan></text>
+<rect x="680" y="490" width="530" height="145" rx="14" fill="#e2f5ef" stroke="#238571" stroke-width="2"/>
+<text x="700" y="524" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="700" dy="0">Temporary runtime identity</tspan></text>
+<text x="700" y="555" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="700" dy="0">Ed25519 JWT · SPIFFE-shaped instance ID</tspan><tspan x="700" dy="25.2">Issue / renew / end · TTL ≤ 10 minutes</tspan><tspan x="700" dy="25.2">SPIRE attestation + real SVID: future adapter</tspan></text>
+<rect x="680" y="680" width="530" height="140" rx="14" fill="#e2f5ef" stroke="#238571" stroke-width="2"/>
+<text x="700" y="714" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="700" dy="0">Activity authorization and policy</tspan></text>
+<text x="700" y="745" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="700" dy="0">Identity + operation + flow + context</tspan><tspan x="700" dy="25.2">Activity TTL ≤ 2 minutes, parent-bounded</tspan><tspan x="700" dy="25.2">Profile rules assign class; revocation is online</tspan></text>
+<rect x="1360" y="285" width="550" height="185" rx="14" fill="#e2f5ef" stroke="#238571" stroke-width="2"/>
+<text x="1380" y="319" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="1380" dy="0">Online gateway authorization</tspan></text>
+<text x="1380" y="350" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="1380" dy="0">Verify activity token, expiry and lifecycle</tspan><tspan x="1380" dy="25.2">Match flow ID and network context</tspan><tspan x="1380" dy="25.2">Reevaluate current policy at enforcement</tspan><tspan x="1380" dy="25.2">Local HTTP gateway + application scheduler</tspan></text>
+<rect x="1360" y="570" width="550" height="250" rx="14" fill="#fff4df" stroke="#b78228" stroke-width="2"/>
+<text x="1380" y="604" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="1380" dy="0">Deployment-specific enforcement</tspan></text>
+<text x="1380" y="635" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="1380" dy="0">Access / cellular → PCF adapter + core QoS</tspan><tspan x="1380" dy="25.2">Edge DC → proxy / host / fabric queues</tspan><tspan x="1380" dy="25.2">Enterprise → branch / central QoS queues</tspan><tspan x="1380" dy="25.2"></tspan><tspan x="1380" dy="25.2">Planned: real packet / network treatment</tspan><tspan x="1380" dy="25.2">DSCP is intent; no automatic 5QI mapping</tspan></text>
+<rect x="60" y="990" width="450" height="130" rx="14" fill="#e8f0fb" stroke="#708aad" stroke-width="2"/>
+<text x="80" y="1024" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="80" dy="0">Identity / policy</tspan></text>
+<text x="80" y="1055" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="80" dy="0">Registry, grants, lifecycle</tspan><tspan x="80" dy="25.2">HTTP contract + audit</tspan></text>
+<rect x="540" y="990" width="450" height="130" rx="14" fill="#e8f0fb" stroke="#708aad" stroke-width="2"/>
+<text x="560" y="1024" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="560" dy="0">Local agents</tspan></text>
+<text x="560" y="1055" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="560" dy="0">Runtime identity client</tspan><tspan x="560" dy="25.2">Model update / alert workloads</tspan></text>
+<rect x="1020" y="990" width="450" height="130" rx="14" fill="#e8f0fb" stroke="#708aad" stroke-width="2"/>
+<text x="1040" y="1024" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="1040" dy="0">Connectivity / lab</tspan></text>
+<text x="1040" y="1055" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="1040" dy="0">Trustworthy flow association</tspan><tspan x="1040" dy="25.2">PCF API + QoS enforcement</tspan></text>
+<rect x="1500" y="990" width="450" height="130" rx="14" fill="#e8f0fb" stroke="#708aad" stroke-width="2"/>
+<text x="1520" y="1024" font-family="Arial, sans-serif" font-size="22" fill="#16324b" font-weight="700"><tspan x="1520" dy="0">Demo / monitoring</tspan></text>
+<text x="1520" y="1055" font-family="Arial, sans-serif" font-size="18" fill="#16324b" font-weight="400"><tspan x="1520" dy="0">Congestion and queue evidence</tspan><tspan x="1520" dy="25.2">Recording + generated transcript</tspan></text>
+<text x="1435" y="525" font-family="Arial, sans-serif" font-size="17" fill="#7759ac" stroke="#f7f9fc" stroke-width="6" paint-order="stroke">4. Class → deployment policy</text>
+<text x="950" y="930" font-family="Arial, sans-serif" font-size="17" fill="#27866d" stroke="#f7f9fc" stroke-width="6" paint-order="stroke">5. Behavior feedback → review; no automatic downgrade</text>
+<text x="60" y="62" font-family="Arial, sans-serif" font-size="38" fill="#16324b" font-weight="700"><tspan x="60" dy="0">Agent identity driven traffic prioritization</tspan></text>
+<text x="60" y="102" font-family="Arial, sans-serif" font-size="20" fill="#60778b" font-weight="400"><tspan x="60" dy="0">PMBU Hackfest · HF-2834 | Shared architecture and ownership | v1 · October 2, 2026</tspan></text>
+<text x="60" y="150" font-family="Arial, sans-serif" font-size="18" fill="#60778b" font-weight="400"><tspan x="60" dy="0">TEAL = working local prototype     AMBER = planned integration     BLUE = supplied lab infrastructure</tspan></text>
+<text x="562" y="480" font-family="Arial, sans-serif" font-size="14" fill="#7759ac" font-weight="400"><tspan x="562" dy="0">1. Identity</tspan></text>
+<text x="562" y="715" font-family="Arial, sans-serif" font-size="14" fill="#7759ac" font-weight="400"><tspan x="562" dy="0">2. Activity</tspan></text>
+<text x="1248" y="510" font-family="Arial, sans-serif" font-size="14" fill="#7759ac" font-weight="400"><tspan x="1248" dy="0">3. Validate</tspan><tspan x="1248" dy="19.599999999999998">+ decide</tspan></text>
+<text x="60" y="960" font-family="Arial, sans-serif" font-size="20" fill="#16324b" font-weight="700"><tspan x="60" dy="0">TEAM DELIVERABLES</tspan></text>
+<text x="60" y="1170" font-family="Arial, sans-serif" font-size="19" fill="#60778b" font-weight="400"><tspan x="60" dy="0">Implemented: local authorization and application queue ordering. Live Duo, SPIRE and network QoS remain integration work.</tspan></text>
+<text x="60" y="1202" font-family="Arial, sans-serif" font-size="19" fill="#60778b" font-weight="400"><tspan x="60" dy="0">Tokens are bearer credentials. Alert intent is authorized, not clinically validated. Lab access is pending teammate provisioning.</tspan></text>
+<text x="60" y="1250" font-family="Arial, sans-serif" font-size="19" fill="#7759ac" font-weight="400"><tspan x="60" dy="0">Second page: exact mapping to the supplied cellular lab, with addresses and interfaces retained.</tspan></text>
+</svg>

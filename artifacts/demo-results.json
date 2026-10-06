@@ -1,0 +1,299 @@
+{
+  "recordedAt": "2026-10-02T12:08:48.495Z",
+  "results": [
+    {
+      "context": "access",
+      "mode": "Actual application-level batch scheduling; no packet marking or measured network latency",
+      "dispatched": [
+        {
+          "arrival": 3,
+          "dispatchOrder": 1,
+          "allow": true,
+          "agentId": "a4991f2e-cc06-4315-b01b-25f92d451cab",
+          "activityId": "d38a8190-e2dc-407c-9515-d51064bee07c",
+          "operation": "health_alert",
+          "context": "access",
+          "flowId": "http-access-health-health_alert",
+          "trafficClass": "critical",
+          "rank": 3,
+          "dscp": 46,
+          "queue": "critical",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        },
+        {
+          "arrival": 2,
+          "dispatchOrder": 2,
+          "allow": true,
+          "agentId": "884fd3ee-211f-4cb6-b936-f9dbe6475958",
+          "activityId": "102602cd-1f8d-42e1-82cc-2e61aaed0f13",
+          "operation": "booking",
+          "context": "access",
+          "flowId": "http-access-travel-booking",
+          "trafficClass": "interactive",
+          "rank": 2,
+          "dscp": 0,
+          "queue": "interactive",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        },
+        {
+          "arrival": 0,
+          "dispatchOrder": 3,
+          "allow": true,
+          "agentId": "611aca5c-5d24-49b4-a35f-34dcdaa11973",
+          "activityId": "d99a1d97-b0a2-48fd-a5b1-b152b680013b",
+          "operation": "recipe_fetch",
+          "context": "access",
+          "flowId": "http-access-recipe-recipe_fetch",
+          "trafficClass": "background",
+          "rank": 1,
+          "dscp": 8,
+          "queue": "background",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        },
+        {
+          "arrival": 1,
+          "dispatchOrder": 4,
+          "allow": true,
+          "agentId": "a4991f2e-cc06-4315-b01b-25f92d451cab",
+          "activityId": "43a84404-db24-41a5-b676-b703891db211",
+          "operation": "model_update",
+          "context": "access",
+          "flowId": "http-access-health-model_update",
+          "trafficClass": "background",
+          "rank": 1,
+          "dscp": 8,
+          "queue": "background",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        }
+      ],
+      "denied": [
+        {
+          "arrival": 4,
+          "flowId": "http-access-security-security_alert",
+          "status": 401,
+          "reason": "Identity is inactive"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "Recipe agent requests health_alert",
+          "blocked": true,
+          "reason": "Operation is not authorized for this profile"
+        },
+        {
+          "name": "Activity used on a different flow",
+          "blocked": true,
+          "reason": "Grant does not match network context and flow"
+        }
+      ]
+    },
+    {
+      "context": "edge",
+      "mode": "Actual application-level batch scheduling; no packet marking or measured network latency",
+      "dispatched": [
+        {
+          "arrival": 3,
+          "dispatchOrder": 1,
+          "allow": true,
+          "agentId": "fd95df0a-40c8-4407-bd4d-7096ae5c3854",
+          "activityId": "ee566c41-3211-4751-8b19-24f14abccef4",
+          "operation": "health_alert",
+          "context": "edge",
+          "flowId": "http-edge-health-health_alert",
+          "trafficClass": "critical",
+          "rank": 3,
+          "dscp": 46,
+          "queue": "critical",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        },
+        {
+          "arrival": 2,
+          "dispatchOrder": 2,
+          "allow": true,
+          "agentId": "9f1506fa-2dc4-44e5-8c08-ae6a30a34b3b",
+          "activityId": "1a881e4d-7eab-4b57-bd5b-b0fbacd99af7",
+          "operation": "booking",
+          "context": "edge",
+          "flowId": "http-edge-travel-booking",
+          "trafficClass": "interactive",
+          "rank": 2,
+          "dscp": 0,
+          "queue": "interactive",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        },
+        {
+          "arrival": 0,
+          "dispatchOrder": 3,
+          "allow": true,
+          "agentId": "f93a26c6-6f40-442d-ab16-826476fae5b8",
+          "activityId": "2b711040-91fd-4d61-b3df-39aa39f1b856",
+          "operation": "recipe_fetch",
+          "context": "edge",
+          "flowId": "http-edge-recipe-recipe_fetch",
+          "trafficClass": "background",
+          "rank": 1,
+          "dscp": 8,
+          "queue": "background",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        },
+        {
+          "arrival": 1,
+          "dispatchOrder": 4,
+          "allow": true,
+          "agentId": "fd95df0a-40c8-4407-bd4d-7096ae5c3854",
+          "activityId": "8335f5cb-5782-4f8c-b8dc-8992523e5c68",
+          "operation": "model_update",
+          "context": "edge",
+          "flowId": "http-edge-health-model_update",
+          "trafficClass": "background",
+          "rank": 1,
+          "dscp": 8,
+          "queue": "background",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        }
+      ],
+      "denied": [
+        {
+          "arrival": 4,
+          "flowId": "http-edge-security-security_alert",
+          "status": 401,
+          "reason": "Identity is inactive"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "Recipe agent requests health_alert",
+          "blocked": true,
+          "reason": "Operation is not authorized for this profile"
+        },
+        {
+          "name": "Activity used on a different flow",
+          "blocked": true,
+          "reason": "Grant does not match network context and flow"
+        }
+      ]
+    },
+    {
+      "context": "enterprise",
+      "mode": "Actual application-level batch scheduling; no packet marking or measured network latency",
+      "dispatched": [
+        {
+          "arrival": 3,
+          "dispatchOrder": 1,
+          "allow": true,
+          "agentId": "ddb88510-7c0c-4767-9b1a-31be87decab2",
+          "activityId": "458cae47-182d-44a6-ae30-2ba19580bebd",
+          "operation": "health_alert",
+          "context": "enterprise",
+          "flowId": "http-enterprise-health-health_alert",
+          "trafficClass": "critical",
+          "rank": 3,
+          "dscp": 46,
+          "queue": "critical",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        },
+        {
+          "arrival": 2,
+          "dispatchOrder": 2,
+          "allow": true,
+          "agentId": "68d482bf-464e-4d1a-abf9-83ba124c136a",
+          "activityId": "7de2018d-be94-4624-9660-55f2031f0ea5",
+          "operation": "booking",
+          "context": "enterprise",
+          "flowId": "http-enterprise-travel-booking",
+          "trafficClass": "interactive",
+          "rank": 2,
+          "dscp": 0,
+          "queue": "interactive",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        },
+        {
+          "arrival": 0,
+          "dispatchOrder": 3,
+          "allow": true,
+          "agentId": "e5a2f465-8589-419d-a053-d78c59c42386",
+          "activityId": "5b431e50-bc9f-4778-9761-3985b2c2e1a5",
+          "operation": "recipe_fetch",
+          "context": "enterprise",
+          "flowId": "http-enterprise-recipe-recipe_fetch",
+          "trafficClass": "background",
+          "rank": 1,
+          "dscp": 8,
+          "queue": "background",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        },
+        {
+          "arrival": 1,
+          "dispatchOrder": 4,
+          "allow": true,
+          "agentId": "ddb88510-7c0c-4767-9b1a-31be87decab2",
+          "activityId": "8b99c94f-9651-4f88-bf15-e441e19bfe45",
+          "operation": "model_update",
+          "context": "enterprise",
+          "flowId": "http-enterprise-health-model_update",
+          "trafficClass": "background",
+          "rank": 1,
+          "dscp": 8,
+          "queue": "background",
+          "policyVersion": 1,
+          "validUntil": 1790943048,
+          "enforcement": "application-queue-demo",
+          "cellular": "operator mapping required"
+        }
+      ],
+      "denied": [
+        {
+          "arrival": 4,
+          "flowId": "http-enterprise-security-security_alert",
+          "status": 401,
+          "reason": "Identity is inactive"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "Recipe agent requests health_alert",
+          "blocked": true,
+          "reason": "Operation is not authorized for this profile"
+        },
+        {
+          "name": "Activity used on a different flow",
+          "blocked": true,
+          "reason": "Grant does not match network context and flow"
+        }
+      ]
+    }
+  ]
+}
