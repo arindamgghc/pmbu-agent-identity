@@ -1,0 +1,39 @@
+# Central services only. SPIRE Agents and AI workloads run on Lattice.
+services:
+  identity-foundation:
+    build: .
+    restart: unless-stopped
+    ports: ["127.0.0.1:4191:4191"]
+    environment:
+      PMBU_HOST: 0.0.0.0
+      PORT: "4191"
+      PMBU_DATA_DIR: /app/state
+      PMBU_ISSUER: ${PMBU_ISSUER:-http://127.0.0.1:14191}
+      SPIRE_BUNDLE_PATH: /app/spire-runtime/bundle.json
+    volumes:
+      - foundation-state:/app/state
+      - ./deploy/spire/runtime:/app/spire-runtime:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4191/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+  spire-data-init:
+    build: .
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c", "chown 1000:1000 /state/server"]
+    volumes: ["spire-server-data:/state/server"]
+  spire-server:
+    image: ghcr.io/spiffe/spire-server:1.15.3
+    restart: unless-stopped
+    depends_on:
+      spire-data-init:
+        condition: service_completed_successfully
+    ports: ["10.8.102.52:8081:8081"]
+    command: ["-config", "/opt/spire/conf/server.conf"]
+    volumes:
+      - ./deploy/spire/server.conf:/opt/spire/conf/server.conf:ro
+      - spire-server-data:/opt/spire/data
+volumes:
+  foundation-state:
+  spire-server-data:

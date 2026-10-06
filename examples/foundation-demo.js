@@ -1,4 +1,5 @@
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+import {dirname} from 'node:path';
 import {EXCHANGE,JWT_TYPE,RAR_TYPE} from '../rar.js';
 const base=process.env.PMBU_URL||'http://127.0.0.1:4191';
 const state=JSON.parse(readFileSync(process.env.PMBU_STATE_FILE||'foundation-data/state.json','utf8'));
@@ -26,6 +27,7 @@ await call('/oauth/token',{...request,authorization_details:[{...details,operati
 await call(`/v1/admin/agents/${enrolled.agent.id}/status`,{status:'revoked'},admin);
 const revoked=await call('/oauth/introspect',{token:token.access_token},client('pmbu-pcf-adapter'));
 if(revoked.active)throw new Error('Revoked token still active');
-const result={recordedAt:new Date().toISOString(),identityMode:'local-demo-issuer',checks:{pendingPushBlocked:true,approvedPushIssued:true,signatureVerifiedByIssuer:true,
+const result={recordedAt:new Date().toISOString(),serviceUrl:base,identityMode:'local-demo-issuer',checks:{pendingPushBlocked:true,approvedPushIssued:true,signatureVerifiedByIssuer:true,
  backgroundTier:background.authorization_details[0].qos_tier,escalationBlocked:true,revocationInvalidated:true},grantedDetails:claims.authorization_details};
-mkdirSync('artifacts',{recursive:true});writeFileSync('artifacts/foundation-results.json',JSON.stringify(result,null,2));console.log('Checks:',result.checks);
+const resultsFile=process.env.PMBU_RESULTS_FILE||'artifacts/foundation-results.json';
+mkdirSync(dirname(resultsFile),{recursive:true});writeFileSync(resultsFile,JSON.stringify(result,null,2));console.log('Checks:',result.checks);

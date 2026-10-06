@@ -8,6 +8,8 @@ The new foundation runs separately on port 4191 with simulated Duo approval, pol
 
 ## Run
 
+The lab central services are deployed on AI Cloud (`10.8.102.52`). See [AI Cloud access and management](docs/AI-CLOUD.md). The commands below run the original local prototype.
+
 ```sh
 cd /Users/arindamg/Cloud_Security/pmbu-agent-identity
 npm test
