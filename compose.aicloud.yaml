@@ -10,6 +10,8 @@ services:
       PMBU_DATA_DIR: /app/state
       PMBU_ISSUER: ${PMBU_ISSUER:-http://10.8.102.52:4191}
       SPIRE_BUNDLE_PATH: /app/spire-runtime/bundle.json
+      PMBU_PCF_ENDPOINT: ${PMBU_PCF_ENDPOINT:-}
+      PMBU_PCF_POLICIES: ${PMBU_PCF_POLICIES:-}
     volumes:
       - foundation-state:/app/state
       - ./deploy/spire/runtime:/app/spire-runtime:ro

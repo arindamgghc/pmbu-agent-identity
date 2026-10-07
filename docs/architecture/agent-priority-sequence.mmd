@@ -1,0 +1,77 @@
+sequenceDiagram
+    actor Admin as Administrator
+    participant App as AI Agent / Helper on Lattice
+    participant SA as SPIRE Agent on Lattice
+    participant SS as SPIRE Server on AI Cloud
+    participant ID as Identity + Policy on AI Cloud
+    participant Duo as Duo Simulator on AI Cloud
+    participant RAR as RAR Issuer on AI Cloud
+    participant Adapter as Connectivity Adapter
+    participant Core as PCF / 5G Network
+
+    Note over ID,RAR: One foundation container, HTTP port 4191
+
+    rect rgb(240, 245, 255)
+        Note over Admin,SS: Initial provisioning
+        Admin->>SS: Register workload SPIFFE ID and selectors
+        Admin->>ID: POST /v1/admin/agents (profile, owner, device)
+        ID-->>Admin: Registered agentId
+        Admin->>ID: POST /foundation/admin/spiffe-mapping
+        Note over ID: Profile policy defines allowed activities and tiers
+    end
+
+    rect rgb(240, 255, 240)
+        Note over App,SS: Establish workload identity
+        SA->>SS: Attest Lattice node (TLS/gRPC, port 8081)
+        SS-->>SA: Node credentials
+        App->>SA: Fetch JWT-SVID via local Workload API
+        Note over SA: Check calling workload against registered selectors
+        SA->>SS: Obtain JWT-SVID for workload and audience
+        SS-->>SA: Signed JWT-SVID
+        SA-->>App: JWT-SVID containing SPIFFE ID
+        App->>ID: POST /foundation/spiffe/exchange (JWT-SVID, agentIp, agentPort)
+        Note over ID: Verify signature, audience, expiry and mapping
+        ID-->>App: Identity token + sessionId
+    end
+
+    rect rgb(255, 250, 235)
+        Note over App,Duo: Simulated session approval
+        App->>Duo: POST /duo/push (identity token, agentIp, agentPort)
+        Duo-->>App: Pending pushId
+        Admin->>Duo: POST /duo/admin/decide (approved)
+        Duo-->>Admin: Approved
+    end
+
+    rect rgb(255, 240, 245)
+        Note over App,RAR: Activity-specific priority authorization
+        App->>RAR: POST /oauth/token
+        Note over App,RAR: Identity token, pushId, operation and flow references
+        RAR->>ID: Check session and profile policy (internal)
+        ID-->>RAR: Allowed tier for activity
+        opt PCF configured with confirmed policy mapping
+            RAR->>Core: HTTP/2 POST /api/policy (agentIP, agentPort, policy)
+            Core-->>RAR: HTTP status
+            Note over RAR,Core: Non-2xx or timeout returns failure, API acceptance is not proof of enforcement
+        end
+        RAR-->>App: Signed RAR token with authorization_details and optional PCF result
+        Note over App,RAR: Same session: model_update = background, security_alert = critical
+    end
+
+    rect rgb(245, 245, 245)
+        Note over Adapter,Core: Optional future token-consuming adapter design
+        App->>Adapter: Submit RAR token and flow reference
+        Adapter->>RAR: GET /.well-known/jwks.json (cached)
+        RAR-->>Adapter: Public verification key
+        Note over Adapter: Verify signature, issuer, audience and expiry
+        Adapter->>RAR: POST /oauth/introspect
+        RAR-->>Adapter: Active status and authorized details
+        Note over Adapter: Verify association with actual UE/session/flow
+        Adapter->>Core: Request agreed policy treatment when enforcement enabled
+        Core-->>Adapter: Policy result
+    end
+
+    App->>ID: POST /v1/identities/end
+    ID-->>App: ended: true
+    Adapter->>RAR: POST /oauth/introspect
+    RAR-->>Adapter: active: false
+    Note over Adapter,Core: Policy removal on expiry is planned, removal API not yet agreed

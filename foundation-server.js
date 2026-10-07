@@ -3,9 +3,12 @@ import {fileURLToPath} from 'node:url';
 import {IdentityService} from './identity.js';
 import {createServer} from './server.js';
 import {Foundation} from './rar.js';
+import {PcfClient} from './pcf.js';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const service=new IdentityService({directory:process.env.PMBU_DATA_DIR||path.join(root,'foundation-data')});
-const foundation=new Foundation(service,{issuer:process.env.PMBU_ISSUER||'http://127.0.0.1:4191',bundlePath:process.env.SPIRE_BUNDLE_PATH});
+const pcfClient=process.env.PMBU_PCF_ENDPOINT ? new PcfClient({endpoint:process.env.PMBU_PCF_ENDPOINT,
+  policies:JSON.parse(process.env.PMBU_PCF_POLICIES||'{}')}) : undefined;
+const foundation=new Foundation(service,{issuer:process.env.PMBU_ISSUER||'http://127.0.0.1:4191',bundlePath:process.env.SPIRE_BUNDLE_PATH,pcfClient});
 const server=createServer(service,{foundation});
 server.on('error',error=>{console.error(error.code==='EADDRINUSE'?'Foundation port already in use. Use the existing server or change PORT.':error.message);process.exit(1);});
 server.listen(Number(process.env.PORT||4191),process.env.PMBU_HOST||'127.0.0.1',()=>console.log('Identity + Duo emulator + RAR issuer ready on port '+(process.env.PORT||4191)));

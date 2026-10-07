@@ -1,10 +1,23 @@
 # Manual testing of SPIRE identity and activity priority
 
-Run one block at a time in the same terminal. The walkthrough takes about 30–45 minutes and covers real SPIRE workload identity, simulated approval, activity-specific priority and identity termination. Only the final manual test commands mutate demo state; sourcing the setup file only loads credentials. Real Duo and ISE integration are outside this hack's scope. Network enforcement remains a connectivity-adapter integration.
+Run one block at a time in the same terminal. The walkthrough takes about 30–45 minutes and covers real SPIRE workload identity, simulated approval, activity-specific priority and identity termination. Only the final manual test commands mutate demo state; sourcing the setup file only loads credentials. Real Duo SSO is planned but this walkthrough uses the simulator. ISE remains out of scope. The optional PCF caller is disabled by default; see `PCF-DUO-INTEGRATION.md` for configuration and pending lab verification.
 
 The four containers are already running on Arindam's Mac. Do not bootstrap SPIRE again for each walkthrough. On a fresh teammate checkout, follow `FOUNDATION.md` first. Required tools: Docker Desktop, Node 20+, curl and jq.
 
 ## 1 Load credentials and check services
+
+If Docker Desktop was stopped, start it and resume the existing stack first. Node credentials can expire during downtime; the refresh helper re-attests an unready laptop agent with a fresh join token and refreshes public bundles without deleting state:
+
+```sh
+cd /Users/arindamg/Cloud_Security/pmbu-agent-identity
+export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+docker desktop start --detach --timeout 15
+# Wait for Docker Desktop to report that its engine is running.
+docker compose --profile spire start identity-foundation spire-server spire-client spire-agent
+sh deploy/spire/refresh-laptop.sh
+```
+
+Use this helper only for the existing laptop stack, not AI Cloud or Lattice.
 
 ```sh
 cd /Users/arindamg/Cloud_Security/pmbu-agent-identity

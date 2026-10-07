@@ -8,7 +8,7 @@ Deployed and verified on October 6, 2026. The central services run in `/home/tra
 | SPIRE Server | `10.8.102.52:8081` | SPIRE healthcheck passed |
 | SPIRE data initializer | No port; exits after setting volume ownership | Exited successfully |
 
-The foundation and SPIRE Server have `restart: unless-stopped` and dedicated named volumes. The SPIRE Agent and workload client are not deployed on AI Cloud. Real Duo and ISE integration are out of scope. Lattice Agent attestation and live PCF treatment remain separate work.
+The foundation and SPIRE Server have `restart: unless-stopped` and dedicated named volumes. The SPIRE Agent and workload client are not deployed on AI Cloud. ISE remains out of scope. Real Duo SSO is planned following the October 7 sync. Optional PCF integration is implemented locally; its lab deployment and policy mapping remain pending. See [PCF and Duo integration](PCF-DUO-INTEGRATION.md). Lattice Agent attestation and verification of live PCF treatment remain separate work.
 
 ## Direct access from Lattice
 

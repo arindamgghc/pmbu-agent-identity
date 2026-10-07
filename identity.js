@@ -1,6 +1,7 @@
 import {generateKeyPairSync, randomBytes, randomUUID, createHash, sign, verify, timingSafeEqual} from 'node:crypto';
 import {existsSync, mkdirSync, readFileSync, writeFileSync, renameSync} from 'node:fs';
 import path from 'node:path';
+import {isIP} from 'node:net';
 
 export class ServiceError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -62,6 +63,11 @@ export class IdentityService {
     requireThat(Number.isInteger(seconds) && seconds > 0 && seconds <= max, 400, `ttlSeconds must be 1..${max}`);
     return seconds;
   }
+  agentAddress(agentIp, agentPort) {
+    if (agentIp !== undefined) requireThat(typeof agentIp === 'string' && isIP(agentIp), 400, 'Invalid agentIp');
+    if (agentPort !== undefined) requireThat(agentIp !== undefined && Number.isInteger(agentPort) && agentPort >= 1 && agentPort <= 65535, 400, 'agentPort requires agentIp and must be an integer 1..65535');
+    return agentIp === undefined ? {} : {agentIp, ...(agentPort === undefined ? {} : {agentPort}), agentIpVerified:false};
+  }
   register({name, deviceId, profile, owner = 'hackfest-team'}) {
     for (const [key, value] of Object.entries({name, deviceId, owner}))
       requireThat(typeof value === 'string' && value.trim().length > 0 && value.length <= 120, 400, `Invalid ${key}`);
@@ -88,13 +94,13 @@ export class IdentityService {
     this.event('agent.' + status, {agentId:id});
     return this.publicAgent(agent);
   }
-  issueIdentity(enrollmentToken, {agentId, ttlSeconds}) {
+  issueIdentity(enrollmentToken, {agentId, ttlSeconds, agentIp, agentPort}) {
     const agent = this.state.agents[agentId];
     requireThat(agent && agent.status === 'active' && !agent.enrollmentUsed &&
       this.clock() < agent.enrollmentExpiresAt && typeof enrollmentToken === 'string' &&
       hash(enrollmentToken) === agent.enrollmentHash, 401, 'Invalid, expired, or used enrollment credential');
     const ttl = this.ttl(ttlSeconds, this.state.policy.maxIdentitySeconds);
-    const session = {id:randomUUID(), agentId, expiresAt:this.clock()+ttl, revoked:false};
+    const session = {id:randomUUID(), agentId, ...this.agentAddress(agentIp, agentPort), expiresAt:this.clock()+ttl, revoked:false};
     this.state.sessions[session.id] = session;
     agent.enrollmentUsed = true;
     this.event('identity.issued', {agentId, sessionId:session.id, expiresAt:session.expiresAt});
@@ -102,9 +108,10 @@ export class IdentityService {
   }
   identityResponse(session) {
     const spiffeId = `spiffe://pmbu.demo/agents/${session.agentId}/instances/${session.id}`;
-    return {agentId:session.agentId, sessionId:session.id, spiffeId, expiresAt:session.expiresAt,
+    const address = this.agentAddress(session.agentIp, session.agentPort);
+    return {agentId:session.agentId, sessionId:session.id, spiffeId, ...address, expiresAt:session.expiresAt,
       token:this.sign({kind:'identity', aud:'pmbu-activity-service', sub:spiffeId, agentId:session.agentId,
-        sessionId:session.id, exp:session.expiresAt})};
+        sessionId:session.id, ...address, exp:session.expiresAt})};
   }
   sign(claims) {
     const head = json64({alg:'EdDSA', typ:'JWT', kid:'pmbu-demo-1'});

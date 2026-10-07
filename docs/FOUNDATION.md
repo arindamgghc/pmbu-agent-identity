@@ -18,7 +18,7 @@ sh examples/foundation-curl.sh
 
 The curl script requires curl and jq, automatically registers a synthetic security agent, obtains a temporary identity, requests and approves a simulated human push, exchanges the identity for a signed RAR entitlement, and introspects it. It prints granted details rather than bearer tokens. The administrator approval in this test script is automated; it does not prove human presence or send a real Duo Push. For a manual demo, run the same steps separately and have the administrator perform `/duo/admin/decide`.
 
-The Node demo additionally verifies pending approval rejection, background model-update authorization, escalation rejection, and immediate revocation. Evidence is saved in `artifacts/foundation-results.json` without secrets or bearer tokens. All 29 tests pass: 20 original tests plus 9 foundation tests.
+The Node demo additionally verifies pending approval rejection, background model-update authorization, escalation rejection, and immediate revocation. Evidence is saved in `artifacts/foundation-results.json` without secrets or bearer tokens. All 37 tests pass, including HTTP/2 PCF integration against a local mock.
 
 ## Docker Compose
 
@@ -60,6 +60,40 @@ Base URL: `http://127.0.0.1:4191`. Loopback is not reachable from the lab or a c
 | POST `/foundation/spiffe/exchange` | JWT-SVID in JSON body | Verify trusted SPIRE credential, then issue short-lived local identity bridge |
 
 Client names are role-checked, but the two OAuth clients share the prototype's local gateway secret. Issue separate per-client credentials for a real deployment. The original gateway endpoints are not modified to accept RAR tokens; an adapter must use the new JWKS and introspection contract.
+
+## UE data-plane IP and source port learned at authentication
+
+`agentIp` means the UE data-plane source IP, not the Lattice management address. This is a prototype field, not a standard Duo or SPIFFE field. Several workloads can share an IP; their agent IDs and SPIFFE subjects remain distinct.
+
+Administrator registration (`POST /v1/admin/agents`, admin bearer) does not require or store an IP:
+
+```json
+{"name":"Security Agent","deviceId":"lattice-ue","profile":"security","owner":"hackfest-team"}
+```
+
+After the administrator maps the returned agent ID to the workload's SPIFFE subject, the workload authenticates (`POST /foundation/spiffe/exchange`):
+
+```json
+{"jwt_svid":"<JWT-SVID from local SPIRE Agent>","agentIp":"192.0.2.1","agentPort":12000}
+```
+
+The alternative enrollment flow (`POST /v1/identities`, enrollment bearer) accepts:
+
+```json
+{"agentId":"<registered-agent-id>","agentIp":"192.0.2.1","agentPort":12000}
+```
+
+The identity response and signed identity token include `agentIp`, `agentPort` (when supplied), and `agentIpVerified:false`. `agentPort` is the source port of the agent’s actual data connection, not the authentication connection or the identity API listening port. It must be an integer from 1 to 65535 and requires `agentIp`. Request simulated Duo approval (`POST /duo/push`, identity bearer):
+
+```json
+{"agentIp":"192.0.2.1","agentPort":12000}
+```
+
+The push response contains that IP and source port alongside the session ID, owner, group, and approval status. The simulator derives the IP from the authenticated session; a conflicting request IP or source port is rejected. An empty push body is also supported and inherits the session address.
+
+In the subsequent `/oauth/token` request, set `authorization_details[0].flow.src_ip` and `flow.src_port` to the session IP and source port. Include destination IP, destination port, and protocol to identify the full flow. The signed RAR token and introspection response carry `agentIp`, `agentPort` (when supplied), and `agentIpVerified:false`; `flow_binding_verified` remains false. Matching these fields checks consistency only. Abdullah's connectivity adapter must verify the subscriber/PDU session and observed traffic before applying network policy, including any NAT address translation.
+
+IPv4 and IPv6 are accepted. Use the same textual representation in all requests. The IP is recorded per authenticated session, not in the agent registry. When the UE address or data connection source port changes, exchange a fresh JWT-SVID with the new IP and port and obtain a fresh Duo approval and QoS token; no new registration or SPIFFE mapping is needed. Existing sessions retain their original address and must be ended when no longer needed. Requests without an IP remain supported for compatibility with the original demos. These source changes require rebuilding the foundation container; they do not alter a running AI Cloud deployment automatically.
 
 Token request:
 

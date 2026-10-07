@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-10-06T08:57:19.204Z",
+  "recordedAt": "2026-10-06T17:17:47.956Z",
   "identityMode": "live-spire-jwt-svid",
   "spiffeId": "spiffe://pmbu.demo/workloads/security",
   "checks": {

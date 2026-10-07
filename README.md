@@ -4,7 +4,7 @@ A dependency-free Node.js prototype for HF-2834. Run on a laptop, Mac mini, or R
 
 ## Identity / Duo / RAR foundation (October 6 update)
 
-The new foundation runs separately on port 4191 with simulated Duo approval, policy-controlled RFC 9396 `authorization_details`, signed JWT entitlements, JWKS and online introspection. Start with the [manual walkthrough](docs/MANUAL-TESTING.md), then see [setup, curl commands, schemas and SPIRE profile](docs/FOUNDATION.md). Native flows, both Docker-hosted HTTP demos, the live SPIRE JWT-SVID-to-RAR flow, and all 29 tests passed. Token-free live evidence is in `artifacts/spire-results.json`. Real Duo and ISE integration are out of scope; PCF integration and real network enforcement remain pending. The original prototype below retains its port 4180 behavior.
+The new foundation runs separately on port 4191 with simulated Duo approval, policy-controlled RFC 9396 `authorization_details`, signed JWT entitlements, JWKS and online introspection. Start with the [manual walkthrough](docs/MANUAL-TESTING.md), then see [setup, curl commands, schemas and SPIRE profile](docs/FOUNDATION.md). Native flows, both Docker-hosted HTTP demos, the live SPIRE JWT-SVID-to-RAR flow, and the original 29 tests passed. The current checkout has 37 passing tests including IP/port binding and PCF mock coverage. Token-free live evidence is in `artifacts/spire-results.json`. ISE remains out of scope. Real Duo SSO is now planned. An optional HTTP/2 PCF caller is implemented locally and tested against a mock; live deployment, operator policy mapping, and network enforcement verification remain pending. See [PCF and Duo integration](docs/PCF-DUO-INTEGRATION.md). The original prototype below retains its port 4180 behavior.
 
 ## Run
 

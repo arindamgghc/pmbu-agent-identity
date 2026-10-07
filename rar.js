@@ -9,8 +9,8 @@ export const ACCESS_TYPE='urn:ietf:params:oauth:token-type:access_token';
 // Illustrative demo mapping only; Abdullah must supply an approved operator mapping.
 export const QOS={background:{'5qi':9,dscp:8},interactive:{'5qi':8,dscp:0},critical:{'5qi':7,dscp:46}};
 export class Foundation {
- constructor(service,{issuer='http://127.0.0.1:4191',bundlePath}={}) {
-  this.service=service;this.issuer=issuer;this.bundlePath=bundlePath;
+ constructor(service,{issuer='http://127.0.0.1:4191',bundlePath,pcfClient}={}) {
+  this.service=service;this.issuer=issuer;this.bundlePath=bundlePath;this.pcfClient=pcfClient;
   service.state.foundation ||= {pushes:{},tokens:{},spiffeMappings:{}};
  }
  get state(){return this.service.state.foundation;}
@@ -18,9 +18,12 @@ export class Foundation {
  metadata(){return {issuer:this.issuer,token_endpoint:this.issuer+'/oauth/token',jwks_uri:this.issuer+'/.well-known/jwks.json',
   introspection_endpoint:this.issuer+'/oauth/introspect',grant_types_supported:[EXCHANGE],token_endpoint_auth_methods_supported:['client_secret_basic'],
   authorization_details_types_supported:[RAR_TYPE],demo_only:true};}
- push(identityToken){
+ push(identityToken,{agentIp,agentPort}={}){
   const {agent,session}=this.service.validate(identityToken,'identity');
-  const push={id:randomUUID(),agentId:agent.id,sessionId:session.id,owner:agent.owner,group:agent.profile,status:'pending',expiresAt:this.service.clock()+120};
+  if(agentPort!==undefined){requireThat(Number.isInteger(agentPort)&&agentPort>=1&&agentPort<=65535,400,'Invalid agentPort');requireThat(agentPort===session.agentPort,403,'Duo agentPort must match authenticated session');}
+  if(agentIp!==undefined){this.service.agentAddress(agentIp);requireThat(agentIp===session.agentIp,403,'Duo agentIp must match authenticated session');}
+  const address=this.service.agentAddress(session.agentIp,session.agentPort);
+  const push={id:randomUUID(),agentId:agent.id,sessionId:session.id,owner:agent.owner,group:agent.profile,...address,status:'pending',expiresAt:this.service.clock()+120};
   this.state.pushes[push.id]=push;this.service.event('duo.push.pending',{agentId:agent.id,pushId:push.id,owner:agent.owner});return push;
  }
  decide(id,status){
@@ -34,7 +37,7 @@ export class Foundation {
   requireThat(!this.state.spiffeMappings[spiffeId] || this.state.spiffeMappings[spiffeId]===agentId,409,'SPIFFE ID already mapped');
   this.state.spiffeMappings[spiffeId]=agentId;this.service.event('spiffe.mapped',{agentId,spiffeId});return {agentId,spiffeId};
  }
- exchangeSvid(token){
+ exchangeSvid(token,{agentIp,agentPort}={}){
   requireThat(this.bundlePath,503,'SPIRE trust bundle not configured');
   try {
    const parts=token.split('.');requireThat(parts.length===3,401,'Malformed SVID');
@@ -49,7 +52,7 @@ export class Foundation {
     (Array.isArray(claims.aud)?claims.aud.includes('pmbu-rar-issuer'):claims.aud==='pmbu-rar-issuer'),401,'Expired SVID or wrong audience');
    const agentId=this.state.spiffeMappings[claims.sub];const agent=this.service.state.agents[agentId];
    requireThat(agent&&agent.status==='active',403,'SPIFFE subject not mapped to active agent');
-   const session={id:randomUUID(),agentId,expiresAt:Math.min(claims.exp,this.service.clock()+600),revoked:false,source:'spire',sourceSpiffeId:claims.sub,sourceExpiresAt:claims.exp};
+   const session={id:randomUUID(),agentId,...this.service.agentAddress(agentIp,agentPort),expiresAt:Math.min(claims.exp,this.service.clock()+600),revoked:false,source:'spire',sourceSpiffeId:claims.sub,sourceExpiresAt:claims.exp};
    this.service.state.sessions[session.id]=session;this.service.event('spiffe.exchanged',{agentId,spiffeId:claims.sub,sessionId:session.id});
    return {...this.service.identityResponse(session),sourceSpiffeId:claims.sub,identitySource:'verified-jwt-svid'};
   } catch(error){if(error instanceof ServiceError)throw error;throw new ServiceError(401,'SVID or trust bundle invalid');}
@@ -73,6 +76,8 @@ export class Foundation {
   const f=d.flow;
   requireThat(f && Object.keys(f).every(k=>['src_ip','dst_ip','src_port','dst_port','protocol'].includes(k)),400,'invalid_authorization_details');
   requireThat(f&&isIP(f.src_ip)&&isIP(f.dst_ip)&&['tcp','udp'].includes(f.protocol)&&[f.src_port,f.dst_port].every(p=>Number.isInteger(p)&&p>0&&p<=65535),400,'Valid observed-flow tuple required');
+  requireThat(session.agentIp===undefined||f.src_ip===session.agentIp,403,'Flow source IP must match authenticated agentIp');
+  requireThat(session.agentPort===undefined||f.src_port===session.agentPort,403,'Flow source port must match authenticated agentPort');
   for(const key of ['subscriber_id','pdu_session_id'])requireThat(typeof d[key]==='string'&&d[key].length>0&&d[key].length<=100,400,'Missing '+key);
   requireThat(!d.qos_tier||d.qos_tier===tier,403,'Requested QoS exceeds or differs from enterprise policy');
   const qos=QOS[tier];for(const key of ['5qi','dscp'])requireThat(d[key]===undefined||d[key]===qos[key],403,'Requested QoS mapping not allowed');
@@ -80,11 +85,29 @@ export class Foundation {
     flow:{src_ip:f.src_ip,dst_ip:f.dst_ip,src_port:f.src_port,dst_port:f.dst_port,protocol:f.protocol},subscriber_id:d.subscriber_id,pdu_session_id:d.pdu_session_id,
     qos_tier:tier,...qos,qos_mapping_status:'demo_only',flow_binding_verified:false};
   const exp=Math.min(claims.exp,session.expiresAt,this.service.clock()+120);const id=randomUUID();
-  const payload={iss:this.issuer,kind:'rar',aud:'pmbu-pcf-adapter',sub:session.sourceSpiffeId||claims.sub,agentId:agent.id,sessionId:session.id,
+  const address=this.service.agentAddress(session.agentIp,session.agentPort);
+  const payload={iss:this.issuer,kind:'rar',aud:'pmbu-pcf-adapter',sub:session.sourceSpiffeId||claims.sub,agentId:agent.id,sessionId:session.id,...address,
     client_id:'pmbu-agent-client',jti:id,exp,enterprise_group:agent.profile,policy_version:this.service.state.policy.version,
-    authorization_details:[granted],qos_tier:tier,...qos,qos_mapping_status:'demo_only',enforcement:'dry_run_only'};
+    authorization_details:[granted],qos_tier:tier,...qos,qos_mapping_status:'demo_only',enforcement:this.pcfClient?'pcf_requested':'dry_run_only'};
   this.state.tokens[id]=payload;this.service.event('rar.issued',{agentId:agent.id,jti:id,operation:d.operation,qosTier:tier});
   return {access_token:this.service.sign(payload),issued_token_type:ACCESS_TYPE,token_type:'Bearer',expires_in:exp-this.service.clock(),authorization_details:[granted]};
+ }
+ async issueWithPcf(body){
+  // issue() checks active workload identity, session-bound Duo approval and activity policy first.
+  const result=this.issue(body);
+  if(!this.pcfClient)return result;
+  const claims=JSON.parse(Buffer.from(result.access_token.split('.')[1],'base64url'));
+  try{
+   const pcf=await this.pcfClient.apply({agentIp:claims.agentIp,agentPort:claims.agentPort,qosTier:claims.qos_tier});
+   // Identity could expire or be revoked while waiting on the network.
+   requireThat(this.introspect(result.access_token).active,401,'Identity or authorization became inactive during PCF request');
+   this.service.event('pcf.api_accepted',{agentId:claims.agentId,sessionId:claims.sessionId,jti:claims.jti,policy:pcf.policy,httpStatus:pcf.httpStatus});
+   return {...result,pcf};
+  }catch(error){
+   delete this.state.tokens[claims.jti];
+   this.service.event('pcf.request_failed',{agentId:claims.agentId,sessionId:claims.sessionId,jti:claims.jti});
+   throw error;
+  }
  }
  introspect(token){
   try{
@@ -117,11 +140,11 @@ export class Foundation {
    if(type==='application/x-www-form-urlencoded'){const params=new URLSearchParams(text);requireThat(new Set(params.keys()).size===[...params.keys()].length,400,'Duplicate parameters');body=Object.fromEntries(params);}
    else {requireThat(type==='application/json',415,'Use JSON or form encoding');try{body=JSON.parse(text);}catch{throw new ServiceError(400,'Invalid JSON');}}
    requireThat(body&&typeof body==='object'&&!Array.isArray(body),400,'Object required');
-   if(route==='/duo/push')send(201,this.push(bearer));
+   if(route==='/duo/push')send(201,this.push(bearer,body));
    else if(route==='/duo/admin/decide')send(200,this.decide(body.push_id,body.status));
    else if(route==='/foundation/admin/spiffe-mapping')send(200,this.bind(body));
-   else if(route==='/foundation/spiffe/exchange')send(200,this.exchangeSvid(body.jwt_svid));
-   else if(route==='/oauth/token')send(200,this.issue(body));
+   else if(route==='/foundation/spiffe/exchange')send(200,this.exchangeSvid(body.jwt_svid,body));
+   else if(route==='/oauth/token')send(200,await this.issueWithPcf(body));
    else if(route==='/oauth/introspect')send(200,this.introspect(body.token));
    else throw new ServiceError(404,'Unknown endpoint');
   }catch(error){send(error.status||500,{error:route==='/oauth/token'?(error.message==='unsupported_grant_type'?error.message:error.message==='invalid_authorization_details'||/QoS|flow\/context|tuple|required$|not authorized/.test(error.message)&&error.status!==401? 'invalid_authorization_details':'invalid_grant'):'request_failed',error_description:error.status?error.message:'Internal service error'});}
