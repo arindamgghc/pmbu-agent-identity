@@ -9,8 +9,9 @@ export const ACCESS_TYPE='urn:ietf:params:oauth:token-type:access_token';
 // Illustrative demo mapping only; Abdullah must supply an approved operator mapping.
 export const QOS={background:{'5qi':9,dscp:8},interactive:{'5qi':8,dscp:0},critical:{'5qi':7,dscp:46}};
 export class Foundation {
- constructor(service,{issuer='http://127.0.0.1:4191',bundlePath,pcfClient}={}) {
-  this.service=service;this.issuer=issuer;this.bundlePath=bundlePath;this.pcfClient=pcfClient;
+ constructor(service,{issuer='http://127.0.0.1:4191',bundlePath,pcfClient,duoMode='simulator'}={}) {
+  requireThat(['simulator','oidc'].includes(duoMode),400,'Invalid Duo mode');
+  this.service=service;this.issuer=issuer;this.bundlePath=bundlePath;this.pcfClient=pcfClient;this.duoMode=duoMode;
   service.state.foundation ||= {pushes:{},tokens:{},spiffeMappings:{}};
  }
  get state(){return this.service.state.foundation;}
@@ -23,10 +24,11 @@ export class Foundation {
   if(agentPort!==undefined){requireThat(Number.isInteger(agentPort)&&agentPort>=1&&agentPort<=65535,400,'Invalid agentPort');requireThat(agentPort===session.agentPort,403,'Duo agentPort must match authenticated session');}
   if(agentIp!==undefined){this.service.agentAddress(agentIp);requireThat(agentIp===session.agentIp,403,'Duo agentIp must match authenticated session');}
   const address=this.service.agentAddress(session.agentIp,session.agentPort);
-  const push={id:randomUUID(),agentId:agent.id,sessionId:session.id,owner:agent.owner,group:agent.profile,...address,status:'pending',expiresAt:this.service.clock()+120};
+  const push={id:randomUUID(),agentId:agent.id,sessionId:session.id,owner:agent.owner,group:agent.profile,...address,source:this.duoMode,status:'pending',expiresAt:Math.min(session.expiresAt,this.service.clock()+120)};
   this.state.pushes[push.id]=push;this.service.event('duo.push.pending',{agentId:agent.id,pushId:push.id,owner:agent.owner});return push;
  }
  decide(id,status){
+  requireThat(this.duoMode==='simulator',403,'Simulator decisions disabled in real Duo SSO mode');
   const p=this.state.pushes[id];requireThat(p && p.expiresAt>this.service.clock(),404,'Push missing or expired');
   requireThat(p.status==='pending',409,'Push already decided');requireThat(['approved','denied'].includes(status),400,'Invalid push decision');
   p.status=status;this.service.event('duo.push.'+status,{agentId:p.agentId,pushId:id});return p;
@@ -64,7 +66,7 @@ export class Foundation {
   requireThat(body.actor_token===undefined && body.actor_token_type===undefined,400,'Actor delegation is not supported');
   const {agent,session,claims}=this.service.validate(body.subject_token,'identity');
   const push=this.state.pushes[body.duo_approval_id];
-  requireThat(push && push.status==='approved' && push.expiresAt>this.service.clock() && push.agentId===agent.id && push.sessionId===session.id && push.group===agent.profile,403,'Duo emulator approval required for this identity');
+  requireThat(push && push.status==='approved' && push.expiresAt>this.service.clock() && push.agentId===agent.id && push.sessionId===session.id && push.group===agent.profile && push.owner===agent.owner && (push.source||'simulator')===this.duoMode && (this.duoMode!=='oidc'||push.ownerSubject&&push.mfaVerified===true),403,'Duo approval required for this identity');
   let details;try{details=typeof body.authorization_details==='string'?JSON.parse(body.authorization_details):body.authorization_details;}catch{throw new ServiceError(400,'invalid_authorization_details');}
   requireThat(Array.isArray(details)&&details.length===1 && details[0]&&details[0].type===RAR_TYPE,400,'invalid_authorization_details');
   const d=details[0];
@@ -88,6 +90,7 @@ export class Foundation {
   const address=this.service.agentAddress(session.agentIp,session.agentPort);
   const payload={iss:this.issuer,kind:'rar',aud:'pmbu-pcf-adapter',sub:session.sourceSpiffeId||claims.sub,agentId:agent.id,sessionId:session.id,...address,
     client_id:'pmbu-agent-client',jti:id,exp,enterprise_group:agent.profile,policy_version:this.service.state.policy.version,
+    approval_source:push.source||'simulator',...(push.ownerSubject?{owner_subject:push.ownerSubject,owner_issuer:push.ownerIssuer,mfa_verified:push.mfaVerified}:{}),
     authorization_details:[granted],qos_tier:tier,...qos,qos_mapping_status:'demo_only',enforcement:this.pcfClient?'pcf_requested':'dry_run_only'};
   this.state.tokens[id]=payload;this.service.event('rar.issued',{agentId:agent.id,jti:id,operation:d.operation,qosTier:tier});
   return {access_token:this.service.sign(payload),issued_token_type:ACCESS_TYPE,token_type:'Bearer',expires_in:exp-this.service.clock(),authorization_details:[granted]};
@@ -124,6 +127,7 @@ export class Foundation {
   if(!route.startsWith('/oauth/')&&!route.startsWith('/duo/')&&!route.startsWith('/foundation/')&&!['/.well-known/jwks.json','/.well-known/oauth-authorization-server'].includes(route))return false;
   const send=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
   try{
+   if(this.sso && route.startsWith('/duo/sso/'))return await this.sso.handle(req,res,url);
    if(req.method==='GET'&&route==='/.well-known/jwks.json'){send(200,this.jwks());return true;}
    if(req.method==='GET'&&route==='/.well-known/oauth-authorization-server'){send(200,this.metadata());return true;}
    const bearer=/^Bearer ([^\s]+)$/.exec(req.headers.authorization||'')?.[1];
@@ -140,7 +144,7 @@ export class Foundation {
    if(type==='application/x-www-form-urlencoded'){const params=new URLSearchParams(text);requireThat(new Set(params.keys()).size===[...params.keys()].length,400,'Duplicate parameters');body=Object.fromEntries(params);}
    else {requireThat(type==='application/json',415,'Use JSON or form encoding');try{body=JSON.parse(text);}catch{throw new ServiceError(400,'Invalid JSON');}}
    requireThat(body&&typeof body==='object'&&!Array.isArray(body),400,'Object required');
-   if(route==='/duo/push')send(201,this.push(bearer,body));
+   if(route==='/duo/push'){requireThat(this.duoMode==='simulator',403,'Use /duo/sso/requests in real Duo SSO mode');send(201,this.push(bearer,body));}
    else if(route==='/duo/admin/decide')send(200,this.decide(body.push_id,body.status));
    else if(route==='/foundation/admin/spiffe-mapping')send(200,this.bind(body));
    else if(route==='/foundation/spiffe/exchange')send(200,this.exchangeSvid(body.jwt_svid,body));

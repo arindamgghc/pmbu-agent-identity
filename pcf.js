@@ -9,7 +9,7 @@ export class PcfClient {
     requireThat(['http:', 'https:'].includes(this.endpoint.protocol) && !this.endpoint.username && !this.endpoint.password, 400, 'Invalid PCF endpoint');
     requireThat(Number.isInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 30000, 400, 'Invalid PCF timeout');
     requireThat(policies && typeof policies === 'object' && !Array.isArray(policies) && Object.entries(policies).every(([tier, policy]) =>
-      ['background', 'interactive', 'critical'].includes(tier) && typeof policy === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(policy)), 400, 'Invalid PCF policy mapping');
+      ['background', 'interactive', 'critical'].includes(tier) && ['downgrade', 'boost'].includes(policy)), 400, 'Invalid PCF policy mapping; use downgrade or boost');
     this.policies = policies;
     this.timeoutMs = timeoutMs;
   }

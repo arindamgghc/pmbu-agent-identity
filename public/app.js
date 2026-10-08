@@ -1,11 +1,12 @@
 const $ = id => document.getElementById(id);
 let activityToken = '';
 let policyDirty = false;
+let networkRequestPending = false;
 function notice(message, error = false) { $('notice').textContent=message; $('notice').className=error?'error':''; }
 async function api(route, body, token = $('admin-key').value, method = body === undefined ? 'GET' : 'POST') {
   const response = await fetch(route,{method,headers:{Authorization:`Bearer ${token}`,...(body===undefined?{}:{'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body)});
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Request failed');
+  if (!response.ok) throw new Error(data.error_description || data.error || 'Request failed');
   return data;
 }
 function cell(row,text) { const td=document.createElement('td'); td.textContent=text; row.append(td); return td; }
@@ -25,6 +26,9 @@ async function refresh() {
   $('activity-count').textContent=data.activities.filter(i=>i.active).length;
   $('policy-version').textContent=data.policy.version;
   if (!policyDirty) $('policy-rules').value=JSON.stringify(data.policy.rules,null,2);
+  $('network-controls').hidden=!data.networkControls?.available;
+  $('simulator-approval').hidden=data.networkControls?.duoMode!=='simulator';
+  $('network-mode').textContent=data.networkControls?.pcfEnabled?'PCF enabled: these buttons send policy requests to the lab.':'PCF disabled: these buttons issue dry-run authorizations only.';
   $('agent-rows').replaceChildren();
   for (const agent of data.agents.slice().reverse()) {
     const row=document.createElement('tr');
@@ -38,6 +42,29 @@ async function refresh() {
         try { await api(`/v1/admin/agents/${agent.id}/status`,{status});await refresh();notice(`${agent.name}: ${status}`); }
         catch(error) {notice(error.message,true);}
       }); actions.append(button);
+    }
+    if(data.networkControls?.available && agent.status==='active' && ['health','security'].includes(agent.profile)) {
+      for(const [activity,label] of [['alert','Start alert'],['background','Resume background updates']]) {
+        const button=document.createElement('button');button.textContent=label;button.dataset.networkActivity='true';button.disabled=networkRequestPending;
+        button.addEventListener('click',async()=>{
+          if(networkRequestPending)return;
+          networkRequestPending=true;
+          document.querySelectorAll('[data-network-activity]').forEach(b=>b.disabled=true);
+          try {
+            const result=await api(`/v1/admin/agents/${agent.id}/activity`,{
+              action:activity,identityToken:$('identity-token').value.trim(),approvalId:$('network-approval').value.trim(),
+              context:$('context').value,flowId:$('flow-id').value.trim(),destinationIp:$('network-destination').value.trim(),
+              destinationPort:Number($('network-port').value),protocol:$('network-protocol').value,
+              subscriberId:$('network-subscriber').value.trim(),pduSessionId:$('network-pdu').value.trim()
+            });
+            const detail=result.authorization_details[0];
+            $('network-result').textContent=JSON.stringify({agent:agent.name,operation:detail.operation,qosTier:detail.qos_tier,
+              flow:detail.flow,expiresIn:result.expires_in,pcf:result.pcf||{status:'dry_run_only'}},null,2);
+            await refresh();notice(result.pcf?`PCF accepted ${result.pcf.policy} for ${agent.name}.`:`Dry-run activity authorized: ${detail.qos_tier}.`);
+          }catch(error){$('network-result').textContent='Request failed: '+error.message;notice(error.message,true);}
+          finally{networkRequestPending=false;document.querySelectorAll('[data-network-activity]').forEach(b=>b.disabled=false);}
+        });actions.append(button);
+      }
     }
     $('agent-rows').append(row);
   }
@@ -94,4 +121,15 @@ action('renew',async()=>{
 action('end-identity',async()=>{await api('/v1/identities/end',{},$('identity-token').value);await refresh();notice('Identity ended; its activity grants are inactive.');});
 action('end-activity',async()=>{await api('/v1/activities/end',{},activityToken);await refresh();notice('Activity ended.');});
 $('policy-rules').addEventListener('input',()=>{policyDirty=true;});
-action('save-policy',async()=>{await api('/v1/admin/policy',{rules:JSON.parse($('policy-rules').value)},undefined,'PUT');policyDirty=false;await refresh();notice('Policy updated. Gateway evaluates existing grants against the new policy.');});
+action('save-policy',async()=>{await api('/v1/admin/policy',{rules:JSON.parse($('policy-rules').value)},undefined,'PUT');policyDirty=false;await refresh();notice('Policy saved. Request a new agent activity to apply it through PCF.');});
+
+action('request-network-approval',async()=>{
+  const push=await api('/duo/push',{},$('identity-token').value.trim());
+  $('network-approval').value=push.id;
+  $('network-result').textContent=JSON.stringify({status:push.status,agentIp:push.agentIp,agentPort:push.agentPort,expiresAt:push.expiresAt},null,2);
+  notice('Simulator approval requested. Review the agent address, then approve as admin.');
+});
+action('approve-network-request',async()=>{
+  await api('/duo/admin/decide',{push_id:$('network-approval').value.trim(),status:'approved'});
+  notice('Simulator approval granted. Choose an activity beside the matching agent.');
+});

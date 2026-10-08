@@ -1,10 +1,10 @@
 # PMBU Hackfest: agent identity driven traffic prioritization
 
-A dependency-free Node.js prototype for HF-2834. Run on a laptop, Mac mini, or Raspberry Pi with Node 20+. Four profiles (recipe, travel, health, security) receive temporary runtime identities and activity-specific importance. The local hosted-connectivity stand-in authorizes flows and orders an application queue.
+A Node.js prototype for HF-2834. Run on a laptop, Mac mini, or Raspberry Pi with Node 20+. Four profiles (recipe, travel, health, security) receive temporary runtime identities and activity-specific importance. The local hosted-connectivity stand-in authorizes flows and orders an application queue.
 
 ## Identity / Duo / RAR foundation (October 6 update)
 
-The new foundation runs separately on port 4191 with simulated Duo approval, policy-controlled RFC 9396 `authorization_details`, signed JWT entitlements, JWKS and online introspection. Start with the [manual walkthrough](docs/MANUAL-TESTING.md), then see [setup, curl commands, schemas and SPIRE profile](docs/FOUNDATION.md). Native flows, both Docker-hosted HTTP demos, the live SPIRE JWT-SVID-to-RAR flow, and the original 29 tests passed. The current checkout has 37 passing tests including IP/port binding and PCF mock coverage. Token-free live evidence is in `artifacts/spire-results.json`. ISE remains out of scope. Real Duo SSO is now planned. An optional HTTP/2 PCF caller is implemented locally and tested against a mock; live deployment, operator policy mapping, and network enforcement verification remain pending. See [PCF and Duo integration](docs/PCF-DUO-INTEGRATION.md). The original prototype below retains its port 4180 behavior.
+The new foundation runs separately on port 4191 with simulated Duo approval, policy-controlled RFC 9396 `authorization_details`, signed JWT entitlements, JWKS and online introspection. Start with the [manual walkthrough](docs/MANUAL-TESTING.md), then see [setup, curl commands, schemas and SPIRE profile](docs/FOUNDATION.md). Native flows, both Docker-hosted HTTP demos, the live SPIRE JWT-SVID-to-RAR flow, and the original 29 tests passed. The current checkout has 46 passing tests including OIDC signature/owner/MFA checks, IP/port binding and PCF mock coverage. Token-free live evidence is in `artifacts/spire-results.json`. ISE remains out of scope. Real Duo SSO server support is implemented locally with `openid-client`; see [Duo SSO setup](docs/DUO-SSO.md). A tenant application, HTTPS callback and live verification remain pending. The HTTP/2 PCF caller is enabled on AI Cloud with background → downgrade and interactive/critical → boost. Mock tests pass; a live PCF POST with a valid UE flow and network enforcement verification remain pending. See [PCF and Duo integration](docs/PCF-DUO-INTEGRATION.md). The original prototype below retains its port 4180 behavior.
 
 ## Run
 
@@ -12,11 +12,12 @@ The lab central services are deployed on AI Cloud (`10.8.102.52`). See [AI Cloud
 
 ```sh
 cd /Users/arindamg/Cloud_Security/pmbu-agent-identity
+npm ci
 npm test
 npm start
 ```
 
-Open http://127.0.0.1:4180. Copy `adminKey` from `data/state.json` into the dashboard's password field and click **Connect**, then **Run scenario**. No install step or external credentials are needed. The server remains on loopback. Stop with Ctrl+C. `PORT` and `PMBU_DATA_DIR` are optional environment variables.
+Open http://127.0.0.1:4180. Copy `adminKey` from `data/state.json` into the dashboard's password field and click **Connect**, then **Run scenario**. The original simulator does not require external credentials. The server remains on loopback. Stop with Ctrl+C. `PORT` and `PMBU_DATA_DIR` are optional environment variables.
 
 In a second terminal:
 
@@ -72,9 +73,9 @@ For team collaboration, use the [editable two-page architecture](docs/architectu
 
 ## Limits of the prototype
 
-This is **not a SPIRE deployment or a conforming SPIFFE SVID issuer**. It uses ordinary signed JWTs with SPIFFE-shaped subjects. Real SPIRE workload attestation and trust bundles are not implemented. Registration/device association is asserted by an authenticated administrator; the single-use credential stands in for attestation.
+The original port-4180 simulator is **not a conforming SPIFFE SVID issuer**. It uses ordinary signed JWTs with SPIFFE-shaped subjects. The separate port-4191 foundation integrates with real SPIRE; this limitation applies to the original local simulator. Registration/device association is asserted by an authenticated administrator; the single-use credential stands in for attestation.
 
-There are **no live Duo calls**. The local enterprise-policy model is an integration boundary, not an invented Duo workload-identity API. Duo's documented Auth API handles user MFA; the production administrator or owner approval flow can use that interface after selecting the team's actual enterprise identity integration.
+AI Cloud currently uses simulated approval; there are **no verified live Duo logins** yet. Optional real OIDC support is implemented in the current checkout. The local enterprise-policy model is an integration boundary, not an invented Duo workload-identity API. Duo's documented Auth API handles user MFA; the production administrator or owner approval flow can use that interface after selecting the team's actual enterprise identity integration.
 
 DSCP values are illustrative **intent**: background 8, interactive 0, critical 46. No packet headers, Linux `tc`, switch queues, carrier bearers, 5QI, QFI or QoS flows are configured. Different contexts currently select the same scheduler implementation; their deployment-specific adapters are future work. This demo demonstrates authorization and queue ordering, not cellular performance or clinical alert reliability.
 

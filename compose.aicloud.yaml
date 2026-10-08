@@ -12,6 +12,11 @@ services:
       SPIRE_BUNDLE_PATH: /app/spire-runtime/bundle.json
       PMBU_PCF_ENDPOINT: ${PMBU_PCF_ENDPOINT:-}
       PMBU_PCF_POLICIES: ${PMBU_PCF_POLICIES:-}
+      PMBU_DUO_MODE: ${PMBU_DUO_MODE:-simulator}
+      DUO_ISSUER: ${DUO_ISSUER:-}
+      DUO_CLIENT_ID: ${DUO_CLIENT_ID:-}
+      DUO_CLIENT_SECRET: ${DUO_CLIENT_SECRET:-}
+      DUO_REDIRECT_URI: ${DUO_REDIRECT_URI:-}
     volumes:
       - foundation-state:/app/state
       - ./deploy/spire/runtime:/app/spire-runtime:ro

@@ -4,9 +4,10 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import path from 'node:path';
 import {IdentityService, requireThat, ServiceError} from './identity.js';
 import {dispatch, runDemo} from './gateway.js';
+import {EXCHANGE, JWT_TYPE, RAR_TYPE} from './rar.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-export function createServer(service, {foundation} = {}) {
+export function createServer(service, {foundation,publicOrigin} = {}) {
   return http.createServer(async (req,res)=>{
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -24,15 +25,32 @@ export function createServer(service, {foundation} = {}) {
         res.writeHead(200,{'Content-Type':type}); return res.end(readFileSync(path.join(root,'public',file)));
       }
       // No CORS: the dashboard and service share an origin. API clients do not need Origin.
-      if (req.headers.origin) requireThat(req.headers.origin === `http://${req.headers.host}`,403,'Cross-origin request denied');
+      if (req.headers.origin) requireThat(req.headers.origin === (publicOrigin||`http://${req.headers.host}`),403,'Cross-origin request denied');
       const bearer = /^Bearer ([^\s]+)$/.exec(req.headers.authorization || '')?.[1];
       const admin = route.startsWith('/v1/admin/') || route === '/v1/demo';
       const gateway = route.startsWith('/v1/gateway/');
       if (admin) service.authenticate(bearer,'admin');
       if (gateway) service.authenticate(bearer,'gateway');
       const body = ['POST','PUT','PATCH'].includes(req.method) ? await readBody(req) : {};
-      if (req.method === 'GET' && route === '/v1/admin/snapshot') return send(200,service.snapshot());
+      if (req.method === 'GET' && route === '/v1/admin/snapshot') return send(200,{...service.snapshot(),networkControls:{available:!!foundation,pcfEnabled:!!foundation?.pcfClient,duoMode:foundation ? (foundation.duoMode||'simulator') : undefined}});
       if (req.method === 'POST' && route === '/v1/admin/agents') return send(201,service.register(body));
+      const activityRoute = /^\/v1\/admin\/agents\/([a-zA-Z0-9-]+)\/activity$/.exec(route);
+      if (req.method === 'POST' && activityRoute) {
+        requireThat(foundation,503,'Network activity controls require the foundation service on port 4191');
+        const {agent,session}=service.validate(body.identityToken,'identity');
+        requireThat(agent.id===activityRoute[1],403,'Identity token belongs to a different agent');
+        requireThat(['health','security'].includes(agent.profile),403,'Alert controls require a health or security agent');
+        requireThat(['alert','background'].includes(body.action),400,'Choose alert or background');
+        requireThat(session.agentIp && session.agentPort,400,'Authenticate with the actual UE IP and agent source port first');
+        const operation=body.action==='background'?'model_update':agent.profile==='health'?'health_alert':'security_alert';
+        const detail={type:RAR_TYPE,operation,network_context:body.context,flow_id:body.flowId,
+          subscriber_id:body.subscriberId,pdu_session_id:body.pduSessionId,
+          flow:{src_ip:session.agentIp,src_port:session.agentPort,dst_ip:body.destinationIp,dst_port:body.destinationPort,protocol:body.protocol}};
+        return send(200,await foundation.issueWithPcf({grant_type:EXCHANGE,subject_token_type:JWT_TYPE,
+          subject_token:body.identityToken,audience:'pmbu-pcf-adapter',duo_approval_id:body.approvalId,authorization_details:[detail]}));
+      }
+      const ownerRoute = /^\/v1\/admin\/agents\/([a-zA-Z0-9-]+)\/owner$/.exec(route);
+      if (req.method === 'POST' && ownerRoute) return send(200,service.setOwner(ownerRoute[1],body.owner));
       const agentRoute = /^\/v1\/admin\/agents\/([a-zA-Z0-9-]+)\/status$/.exec(route);
       if (req.method === 'POST' && agentRoute) return send(200,service.setStatus(agentRoute[1],body.status));
       if (req.method === 'PUT' && route === '/v1/admin/policy') return send(200,service.replaceRules(body.rules));

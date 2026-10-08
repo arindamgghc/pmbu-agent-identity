@@ -6,6 +6,7 @@ Verified October 6, 2026: native API tests, both HTTP demos against Docker Compo
 
 ```sh
 cd /Users/arindamg/Cloud_Security/pmbu-agent-identity
+npm ci
 npm run start:foundation
 ```
 
@@ -18,7 +19,7 @@ sh examples/foundation-curl.sh
 
 The curl script requires curl and jq, automatically registers a synthetic security agent, obtains a temporary identity, requests and approves a simulated human push, exchanges the identity for a signed RAR entitlement, and introspects it. It prints granted details rather than bearer tokens. The administrator approval in this test script is automated; it does not prove human presence or send a real Duo Push. For a manual demo, run the same steps separately and have the administrator perform `/duo/admin/decide`.
 
-The Node demo additionally verifies pending approval rejection, background model-update authorization, escalation rejection, and immediate revocation. Evidence is saved in `artifacts/foundation-results.json` without secrets or bearer tokens. All 37 tests pass, including HTTP/2 PCF integration against a local mock.
+The Node demo additionally verifies pending approval rejection, background model-update authorization, escalation rejection, and immediate revocation. Evidence is saved in `artifacts/foundation-results.json` without secrets or bearer tokens. All 46 tests pass, including HTTP/2 PCF integration against a local mock.
 
 ## Docker Compose
 
@@ -163,8 +164,20 @@ Create the local registry entry using the existing administrator API, then bind:
 
 Submit the fetched token as `{"jwt_svid":"<token>"}` to `/foundation/spiffe/exchange`. Native mode must set `SPIRE_BUNDLE_PATH=deploy/spire/runtime/bundle.json` before startup; Compose already mounts that file. Verification uses only that configured trust bundle, its JWT signing keys, the exact administrator-approved subject mapping and the `pmbu-rar-issuer` audience. JWT-provided key URLs are not trusted. The bridge retains the verified source SPIFFE ID and source expiration; renewal cannot extend past the source credential lifetime. Use its returned local identity token for the Duo/RAR sequence. Refresh the bundle after SPIRE signing-key rotation.
 
-The JWT verifier passed generated-key tests for valid signature, trusted mapping, wrong audience, unmapped subject and expiration. The live demo additionally passed with SPIRE-issued ES256 JWT-SVIDs from the container Workload API. Real Duo and ISE integration are out of scope for this hack. The actual PCF adapter and trusted traffic-flow correlation remain team integration work.
+The JWT verifier passed generated-key tests for valid signature, trusted mapping, wrong audience, unmapped subject and expiration. The live demo additionally passed with SPIRE-issued ES256 JWT-SVIDs from the container Workload API. ISE remains out of scope. Real Duo OIDC support is implemented locally; deployment requires the tenant and HTTPS configuration in `DUO-SSO.md`. The actual PCF adapter and trusted traffic-flow correlation remain team integration work.
 
 ## Standards and terminology
 
-[RFC 9396](https://www.rfc-editor.org/rfc/rfc9396.html) defines structured authorization requests, token-request/response `authorization_details`, and the access-token claim. It does not standardize a “Rich JWT” format or our QoS fields. This implementation uses a custom PMBU RAR type with an [RFC 8693 token-exchange](https://www.rfc-editor.org/rfc/rfc8693.html) grant and a local approval parameter. It is a narrow hackfest OAuth profile, not a full authorization-code/OIDC server or a claim of full OAuth conformance. There are no refresh tokens, interactive browser consent endpoint or real Duo calls. SPIRE behavior and CLI references: [server](https://github.com/spiffe/spire/blob/main/doc/spire_server.md), [agent](https://github.com/spiffe/spire/blob/main/doc/spire_agent.md).
+[RFC 9396](https://www.rfc-editor.org/rfc/rfc9396.html) defines structured authorization requests, token-request/response `authorization_details`, and the access-token claim. It does not standardize a “Rich JWT” format or our QoS fields. This implementation uses a custom PMBU RAR type with an [RFC 8693 token-exchange](https://www.rfc-editor.org/rfc/rfc8693.html) grant and a local approval parameter. It is a narrow hackfest OAuth profile, not a full authorization-code/OIDC server or a claim of full OAuth conformance. The RAR issuer has no refresh tokens or interactive OAuth consent endpoint. The optional Duo OIDC relying-party module provides a separate browser login for owner approval; live Duo verification remains pending. SPIRE behavior and CLI references: [server](https://github.com/spiffe/spire/blob/main/doc/spire_server.md), [agent](https://github.com/spiffe/spire/blob/main/doc/spire_agent.md).
+
+## Dashboard activity controls
+
+Connect to the foundation dashboard on 4191 using the admin key. For an active health or security agent:
+
+1. Authenticate with its actual UE data-plane IP and source port using `/foundation/spiffe/exchange`. Paste the returned identity token into **Start an activity**.
+2. In **Change the agent’s activity**, request Duo simulator approval, review the address, and explicitly approve as simulator admin. You can also paste an already-approved request ID. These simulator buttons are hidden in real SSO mode.
+3. Enter the actual destination IP/port, protocol, subscriber ID and PDU session ID. Set the flow ID and network context in the existing activity controls.
+4. In the agent inventory, click **Start alert** or **Resume background updates**. The admin endpoint `/v1/admin/agents/<id>/activity` checks that the supplied identity belongs to that agent, requires current session-bound Duo approval, and uses the same policy and PCF path as `/oauth/token`. It does not expose the OAuth client secret to the browser.
+5. With the default policy, an alert requests boost and a model update requests downgrade. If policy was edited, the buttons use the new policy. Saving policy alone sends no PCF request.
+
+The result shows the requested flow, tier and PCF response without displaying the RAR bearer token. PCF API acceptance is not proof of packet treatment. Expiry/revocation does not automatically remove an installed PCF policy; use an explicit background request to request downgrade. The approval expires within 120 seconds; request and approve again when needed. A failed PCF request can have an unknown network outcome; verify with the lab before retrying.

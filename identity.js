@@ -83,6 +83,15 @@ export class IdentityService {
     const {enrollmentHash, enrollmentUsed, enrollmentExpiresAt, ...safe} = agent;
     return safe;
   }
+  setOwner(id, owner) {
+    const agent=this.state.agents[id];
+    requireThat(agent && agent.status==='active',404,'Active agent not found');
+    requireThat(typeof owner==='string' && owner.trim().length>0 && owner.length<=120,400,'Invalid owner');
+    agent.owner=owner.trim();
+    for(const session of Object.values(this.state.sessions))if(session.agentId===id)session.revoked=true;
+    this.event('agent.owner.updated',{agentId:id});
+    return this.publicAgent(agent);
+  }
   setStatus(id, status) {
     const agent = this.state.agents[id];
     requireThat(agent, 404, 'Unknown agent');

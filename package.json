@@ -13,5 +13,8 @@
     "start:foundation": "node foundation-server.js",
     "demo:foundation": "node examples/foundation-demo.js",
     "demo:spire": "node examples/spire-demo.js"
+  },
+  "dependencies": {
+    "openid-client": "^6.8.8"
   }
 }
