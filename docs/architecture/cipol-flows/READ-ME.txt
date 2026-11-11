@@ -1,0 +1,37 @@
+PMBU AGENT IDENTITY / ACTIVITY-BASED NETWORK PRIORITY
+Three sequence diagrams for technical review with Tim and Abdullah
+Prepared: 11 November 2026
+
+FILES
+01-agent-provisioning: registry, policy, SPIRE node/workload registration and identity mapping.
+02-first-temporary-identity-and-qos: JWT-SVID acquisition, identity exchange, simulated owner approval, activity authorization and PCF request.
+03-renewal-and-adaptive-policy: bounded identity renewal or fresh credential exchange, session approval, background-to-alert-to-background priority changes and administrator policy updates.
+
+Each diagram is supplied as PNG for sharing, SVG for scalable document insertion, and editable Mermaid (.mmd). The sequence numbers are local to each diagram.
+
+SCOPE AND STATUS
+These are technical reference diagrams based on the checked-in prototype, not a claim that every lifecycle path was demonstrated end-to-end in the lab. Internal SPIRE exchanges are summarized; core-network signaling is intentionally not invented. Existing API support is distinguished from proposed orchestration and cleanup. Review the lab deployment and patent/CIPOL narrative together before treating any proposed behavior as demonstrated.
+
+The Identity service, Duo simulator and RAR issuer are logical functions in one foundation service on port 4191. The SPIRE Server is separate on TLS/gRPC port 8081. The local SPIRE Agent exposes the Workload API on a Unix socket. The PCF-facing API uses HTTP/2 on port 18091. ISE and real Duo SSO are excluded from the depicted demo path.
+
+AUTHENTICATION AND ADDRESS BINDING
+Administrator API calls require the admin bearer key. Agent calls use their workload-derived identity bearer. /oauth/token requires the configured OAuth client authentication, an identity subject token, and a session-bound Duo approval. Credentials and secrets are deliberately not included in these artifacts.
+
+A SPIFFE ID identifies the workload; a JWT-SVID is its signed, time-limited credential. The bridge issues a separate identity token and application session. Fresh credentials can retain the same SPIFFE ID. The prototype does not require a new SPIFFE subject for each activity.
+
+Provisioning does not need an IP address. Runtime exchange accepts agentIp and numeric agentPort for the actual UE data-plane flow. They are session-bound but caller-asserted. Network-level verification of that address, source-port ownership, NAT effects, subscriber and PDU-session association remains a separate integration responsibility.
+
+PCF CONTRACT
+POST /api/policy sends only agentIP, agentPort as a JSON string, and policy equal to boost or downgrade. The authentication field agentIp becomes agentIP in this PCF payload. Destination tuple, subscriber/PDU references and authorization_details remain in the authorization record/token; they are not extra fields sent to this three-field API.
+
+Default mapping: model_update -> background -> downgrade; security_alert -> critical -> boost; travel booking -> interactive -> boost. Current enterprise policy is always evaluated; a requested action does not guarantee a boost after policy changes.
+
+A successful PCF HTTP response proves API acceptance, not actual QoS enforcement or a bandwidth/latency guarantee. Core-internal enforcement in diagram 2 is conceptual and requires Abdullah's validation. No direct bearer-token interception by the 5G core is assumed.
+
+LIFECYCLE LIMITS
+A local identity cannot renew beyond its source JWT-SVID expiration. Fetch a fresh JWT-SVID and exchange again to obtain a fresh application session. That session requires its own approval. Existing activity grants are not extended by identity renewal. Activity grants last at most 120 seconds and cannot outlive their identity; simulator approvals are also short-lived.
+
+A policy edit increments the policy version and makes prior RAR tokens inactive at introspection. It does not by itself push an update to PCF. An explicit new activity request applies the new policy. Token expiry, identity termination and introspection revocation do not automatically remove PCF-installed policy; an explicit downgrade is shown. Automated feedback-driven policy changes and automatic network cleanup are proposed extensions.
+
+EDITING
+Edit the .mmd sources and regenerate PNG/SVG with Mermaid CLI. Rendering configuration is included as mermaid-config.json. No external diagram-hosting service is needed.

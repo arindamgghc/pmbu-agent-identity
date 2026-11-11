@@ -1,0 +1,57 @@
+sequenceDiagram
+    autonumber
+    participant App as AI Agent / Helper<br/>Lattice UE
+    participant SPIRE as SPIRE Agent / Server<br/>Workload credentials
+    participant F as Identity + Duo Simulator<br/>+ RAR Issuer :4191
+    participant Admin as Enterprise Administrator
+    participant PCF as Connectivity Policy API<br/>PCF :18091
+
+    Note over App,PCF: FLOW 3 - TEMPORARY ID RENEWAL AND ADAPTIVE POLICY UPDATE<br/>API-supported lifecycle, no automatic renewal / feedback orchestration claimed
+    rect rgb(235, 244, 255)
+        alt Identity is valid and source credential still permits renewal
+            App->>F: POST /v1/identities/renew - current identity bearer<br/>{ttlSeconds: requested local lifetime}
+            F->>F: Validate identity, bound new expiry by source<br/>JWT-SVID expiration and configured maximum TTL
+            F-->>App: Replacement identity token, same sessionId<br/>updated expiresAt, UE IP / source port retained
+            Note over App,F: Renewal cannot extend beyond original JWT-SVID expiry.<br/>Existing activity grants are not automatically extended.
+        else Source credential / identity is expiring, expired, or UE address changes
+            App->>SPIRE: Fetch fresh JWT-SVID via local Workload API<br/>audience = pmbu-rar-issuer
+            SPIRE-->>App: Fresh JWT-SVID for registered SPIFFE subject
+            App->>F: POST /foundation/spiffe/exchange<br/>{jwt_svid, agentIp, agentPort}
+            F-->>App: New identity token + new sessionId + bounded expiry
+            Note over App,F: Fresh credential does not necessarily mean a new SPIFFE ID.<br/>Re-exchange creates a new application session, prior approval cannot be borrowed.
+        end
+        opt No valid approval for current session
+            App->>F: POST /duo/push - current identity bearer
+            F-->>App: Pending push id
+            Admin->>F: POST /duo/admin/decide<br/>{push_id, status: approved}
+            F-->>Admin: Session-bound simulator approval
+        end
+    end
+    rect rgb(237, 250, 241)
+        Note over App,PCF: Activity-driven adaptation - same agent, different importance
+        App->>F: POST /oauth/token<br/>identity + approval + model_update + flow
+        F->>F: Current policy: model_update = background
+        F->>PCF: POST /api/policy<br/>{agentIP, agentPort: string, policy: downgrade}
+        PCF-->>F: HTTP 2xx
+        F-->>App: Background RAR token + PCF acceptance
+        App->>App: Detect security alert / change activity
+        App->>F: POST /oauth/token<br/>identity + approval + security_alert + flow
+        F->>F: Revalidate identity / approval, evaluate current policy<br/>Default security profile: security_alert = critical
+        F->>PCF: POST /api/policy<br/>{agentIP, agentPort: string, policy: boost}
+        PCF-->>F: HTTP 2xx
+        F-->>App: Critical RAR token + PCF acceptance
+    end
+    rect rgb(255, 248, 231)
+        opt Administrator updates enterprise policy
+            Admin->>F: PUT /v1/admin/policy - admin bearer<br/>{rules: complete revised profile-to-operation policy}
+            F->>F: Save rules, increment policy version<br/>Older RAR tokens become inactive at introspection
+            F-->>Admin: Updated policy version
+            Note over F,PCF: Policy edit alone sends no PCF update.<br/>An explicit activity request applies revised policy.
+        end
+        App->>F: POST /oauth/token<br/>identity + valid approval + model_update + flow
+        F->>F: Evaluate latest policy, reject if no longer permitted
+        F->>PCF: POST /api/policy - explicit return to background<br/>{agentIP, agentPort: string, policy: downgrade}
+        PCF-->>F: HTTP 2xx
+        F-->>App: New policy-authorized token + PCF acceptance
+    end
+    Note over App,PCF: Reference flow uses default background-to-downgrade mapping.<br/>Repeat approval if expired. No automatic PCF removal on token expiry.<br/>Telemetry-triggered policy updates and automatic network cleanup are proposed extensions.<br/>Verify network effects separately, invalid identity / approval never authorizes PCF.

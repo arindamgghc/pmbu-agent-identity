@@ -1,0 +1,35 @@
+sequenceDiagram
+    autonumber
+    participant Admin as Enterprise Administrator
+    participant ID as Identity / Policy Service<br/>AI Cloud :4191
+    participant SS as SPIRE Server<br/>AI Cloud :8081
+    participant SA as SPIRE Agent<br/>Lattice UE
+
+    Note over Admin,SA: FLOW 1 - AGENT PROVISIONING TO ID SERVICE<br/>Administrative setup, before workload authentication
+    rect rgb(235, 244, 255)
+        Admin->>ID: POST /v1/admin/agents - admin bearer<br/>{name, deviceId, profile: security, owner}
+        ID->>ID: Validate profile / owner, create active registry record
+        ID-->>Admin: agent {id, profile, owner, status}<br/>+ one-time enrollment credential (alternative bootstrap path)
+        Note over Admin,ID: No UE IP or source port is required during provisioning.<br/>Profile selects permitted operations, not permanent priority.
+        opt Administrator adjusts enterprise activity policy
+            Admin->>ID: PUT /v1/admin/policy - admin bearer<br/>{rules: complete profile-to-operation policy}
+            ID->>ID: Validate and save rules, increment policy version
+            ID-->>Admin: Policy version and rules
+        end
+        Note over Admin,ID: Security policy: model_update = background, security_alert = critical.<br/>PCF mapping: background = downgrade, interactive / critical = boost.<br/>Policy save alone does not call PCF.
+    end
+    rect rgb(237, 250, 241)
+        opt Initial Lattice node enrollment, if not already established
+            Admin->>SS: Provision node enrollment and trust bundle<br/>Demo: generate short-lived join token for Lattice node
+            Admin->>SA: Install configuration, trust bundle and join token securely
+            SA->>SS: Node attestation / enrollment over TLS, port 8081
+            SS-->>SA: Node credentials and registration synchronization
+        end
+        Admin->>SS: Register workload using SPIRE administrative CLI/API<br/>SPIFFE ID + parent node + workload selectors
+        SS-->>Admin: Workload registration entry
+        Admin->>ID: POST /foundation/admin/spiffe-mapping - admin bearer<br/>{agentId, spiffeId}
+        ID->>ID: Bind exact trusted SPIFFE subject to registry agent
+        ID-->>Admin: {agentId, spiffeId}
+        Note over SS,SA: SPIRE Agent uses registration selectors to identify<br/>callers of its local Workload API.
+    end
+    Note over Admin,SA: OUTCOME: registered workload + owner/profile policy + SPIFFE mapping.<br/>Provisioning alone assigns no runtime identity session or network QoS.<br/>ISE and real Duo SSO are outside this demonstrated flow.

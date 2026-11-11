@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+    participant App as AI Agent / Helper<br/>Lattice UE
+    participant SA as SPIRE Agent<br/>Local Workload API
+    participant SS as SPIRE Server<br/>AI Cloud :8081
+    participant F as Identity + Duo Simulator<br/>+ RAR Issuer :4191
+    participant Admin as Approval Administrator
+    participant PCF as Connectivity Policy API<br/>PCF :18091
+    participant Net as 5G Enforcement Functions<br/>Lab verification boundary
+
+    Note over App,Net: FLOW 2 - FIRST TEMPORARY ID ASSIGNMENT WITH POLICY AND QoS APPLICATION<br/>Precondition: Flow 1 complete, actual UE flow details supplied by lab
+    rect rgb(235, 244, 255)
+        App->>SA: Fetch JWT-SVID via local Unix-socket Workload API<br/>audience = pmbu-rar-issuer
+        SA->>SA: Match calling workload against registered selectors
+        SA->>SS: Obtain workload JWT-SVID using authenticated node channel
+        SS-->>SA: Signed, time-limited JWT-SVID
+        SA-->>App: JWT-SVID with SPIFFE subject and expiration
+        App->>F: POST /foundation/spiffe/exchange<br/>{jwt_svid, agentIp: actual UE data-plane IP, agentPort: source port}
+        F->>F: Verify signature, audience, expiry,<br/>active registry entry and exact SPIFFE mapping
+        F-->>App: identity token + sessionId + expiresAt + agentIp / agentPort
+        Note over App,F: Session is bounded by source JWT-SVID expiry and local TTL.<br/>IP / port are session-bound but caller-asserted, not network-attested.
+    end
+    rect rgb(255, 248, 231)
+        App->>F: POST /duo/push - identity bearer<br/>{agentIp, agentPort} matching session
+        F-->>App: push id, status = pending, expiresAt
+        Admin->>F: POST /duo/admin/decide - admin bearer<br/>{push_id, status: approved}
+        F-->>Admin: Approval bound to agent / session / owner
+        Note over App,F: Explicit simulator approval, not real Duo MFA.<br/>Pending, denied or expired approval cannot authorize QoS.
+    end
+    rect rgb(237, 250, 241)
+        App->>F: POST /oauth/token - authenticated OAuth client<br/>identity subject_token + duo_approval_id + authorization_details
+        Note over App,F: Details: operation, network_context, flow_id, subscriber_id,<br/>pdu_session_id and source/destination IP, ports, protocol.<br/>Agent requests an activity, enterprise policy determines the tier.
+        F->>F: Validate identity, approval and matching flow,<br/>evaluate current profile policy and resolve PCF mapping
+        F->>PCF: HTTP/2 POST /api/policy<br/>{agentIP: UE IP, agentPort: source port as string, policy: boost or downgrade}
+        PCF-->>F: HTTP 2xx - policy API accepted
+        F-->>App: Signed RAR token + authorization_details + PCF result<br/>Activity TTL at most 120 seconds, bounded by identity expiry
+        Note over F,PCF: Validation failure: no PCF request.<br/>PCF rejection / timeout: no successful token response, outcome may be unknown.
+    end
+    rect rgb(247, 247, 247)
+        Note over PCF,Net: Lab-owned enforcement path - conceptual, verify separately
+        PCF-->>Net: Apply policy to identified UE flow<br/>Internal core signaling is not specified by this application API
+        Note over App,Net: Agent traffic traverses the lab data plane.<br/>Confirm boost / downgrade with lab counters or traffic measurements.<br/>API acceptance alone does not prove packet treatment.
+    end
